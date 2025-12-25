@@ -1,0 +1,13 @@
+{
+  "example": {
+    "network": "Example Network (replace with actual deployment)",
+    "chainId": 0,
+    "rpcUrl": "https://example.com",
+    "userRegistry": "0x0000000000000000000000000000000000000000",
+    "channelRegistry": "0x0000000000000000000000000000000000000000",
+    "channels": {
+      "general": "0x0000000000000000000000000000000000000000"
+    },
+    "deployedAt": "2025-12-25T00:00:00Z"
+  }
+}

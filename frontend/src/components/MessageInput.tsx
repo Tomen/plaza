@@ -1,0 +1,96 @@
+import { useState, type FormEvent } from 'react';
+import toast from 'react-hot-toast';
+
+interface MessageInputProps {
+  onSend: (message: string) => Promise<boolean>;
+  disabled: boolean;
+  isSending: boolean;
+}
+
+export function MessageInput({ onSend, disabled, isSending }: MessageInputProps) {
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!message.trim() || disabled || isSending) return;
+
+    // Show loading toast
+    const toastId = toast.loading('⟫ TRANSMITTING MESSAGE TO BLOCKCHAIN...', {
+      style: {
+        background: '#001a1a',
+        color: '#00ffff',
+        border: '1px solid #00ffff',
+        boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
+      },
+    });
+
+    try {
+      const success = await onSend(message);
+
+      if (success) {
+        toast.success('✓ MESSAGE SUCCESSFULLY BROADCASTED', {
+          id: toastId,
+        });
+        setMessage('');
+      } else {
+        toast.error('✖ TRANSMISSION FAILED', {
+          id: toastId,
+        });
+      }
+    } catch (error) {
+      toast.error('✖ TRANSMISSION ERROR', {
+        id: toastId,
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="border-t-2 border-orange-500 bg-black p-4">
+      <div className="flex gap-2">
+        <div className="flex-1 relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 font-mono text-sm">
+            &gt;
+          </span>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={disabled ? '[CONNECT WALLET TO TRANSMIT]' : '[ENTER MESSAGE]'}
+            disabled={disabled || isSending}
+            className="w-full pl-8 pr-4 py-3 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 disabled:text-gray-600 placeholder-orange-800 transition-all"
+            style={{
+              boxShadow: disabled ? 'none' : '0 0 10px rgba(255, 136, 0, 0.2)',
+            }}
+            maxLength={500}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={disabled || isSending || !message.trim()}
+          className="bg-orange-900 hover:bg-orange-800 disabled:bg-gray-900 text-orange-400 disabled:text-gray-700 font-mono text-sm px-8 py-3 border-2 border-orange-500 hover:border-orange-400 disabled:border-gray-700 transition-all uppercase tracking-wider font-bold"
+          style={{
+            boxShadow: disabled || isSending ? 'none' : '0 0 15px rgba(255, 136, 0, 0.4)',
+          }}
+        >
+          {isSending ? (
+            <span className="flex items-center gap-2">
+              <span className="terminal-cursor">█</span>
+              SENDING
+            </span>
+          ) : (
+            '▶ SEND'
+          )}
+        </button>
+      </div>
+      <div className="mt-2 flex justify-between items-center font-mono text-xs">
+        <span className="text-orange-700">
+          [BLOCKCHAIN STORAGE ACTIVE]
+        </span>
+        <span className={`${message.length > 450 ? 'text-red-500' : 'text-orange-600'}`}>
+          {message.length}/500 CHARS
+        </span>
+      </div>
+    </form>
+  );
+}
