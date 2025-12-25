@@ -6,12 +6,20 @@ import {
   getStoredWalletInfo,
   clearAppWallet,
   isWalletAuthorizedFor,
+  getOrCreateStandaloneWallet,
+  getStoredStandaloneWallet,
+  clearStandaloneWallet,
+  getPrivateKeyForExport,
+  hasStandaloneWallet,
 } from "../utils/appWallet";
+
+export type WalletMode = 'browser' | 'standalone' | 'none';
 
 interface UseAppWalletProps {
   userAddress: string | null;
   provider: ethers.BrowserProvider | null;
   checkDelegateOnChain?: (delegateAddress: string) => Promise<boolean>;
+  mode?: WalletMode;
 }
 
 interface UseAppWalletReturn {
@@ -22,6 +30,7 @@ interface UseAppWalletReturn {
   isAuthorized: boolean;
   isLoading: boolean;
   error: string | null;
+  mode: WalletMode;
 
   // Actions
   initializeWallet: () => void;
@@ -29,18 +38,30 @@ interface UseAppWalletReturn {
   fundWallet: (amount: bigint) => Promise<void>;
   refreshBalance: () => Promise<void>;
   disconnect: () => void;
+
+  // Standalone mode actions
+  initializeStandaloneWallet: (provider: ethers.Provider) => ethers.Wallet;
+  getPrivateKey: () => string | null;
+  hasExistingStandaloneWallet: () => boolean;
 }
 
 export function useAppWallet({
   userAddress,
   provider,
   checkDelegateOnChain,
+  mode = 'browser',
 }: UseAppWalletProps): UseAppWalletReturn {
   const [appWallet, setAppWallet] = useState<ethers.Wallet | null>(null);
   const [balance, setBalance] = useState<bigint>(0n);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentMode, setCurrentMode] = useState<WalletMode>(mode);
+
+  // Update mode when prop changes
+  useEffect(() => {
+    setCurrentMode(mode);
+  }, [mode]);
 
   // Check authorization status
   const checkAuthorization = useCallback(async () => {
@@ -166,11 +187,36 @@ export function useAppWallet({
 
   // Disconnect and clear
   const disconnect = useCallback(() => {
-    clearAppWallet();
+    if (currentMode === 'standalone') {
+      clearStandaloneWallet();
+    } else {
+      clearAppWallet();
+    }
     setAppWallet(null);
     setIsAuthorized(false);
     setBalance(0n);
     setError(null);
+  }, [currentMode]);
+
+  // Initialize standalone wallet (for in-app wallet mode)
+  const initializeStandaloneWallet = useCallback((walletProvider: ethers.Provider): ethers.Wallet => {
+    const wallet = getOrCreateStandaloneWallet();
+    const connectedWallet = wallet.connect(walletProvider);
+    setAppWallet(connectedWallet);
+    setCurrentMode('standalone');
+    // In standalone mode, wallet is always "authorized" (it is the primary identity)
+    setIsAuthorized(true);
+    return connectedWallet;
+  }, []);
+
+  // Get private key for export (standalone mode)
+  const getPrivateKey = useCallback((): string | null => {
+    return getPrivateKeyForExport();
+  }, []);
+
+  // Check if standalone wallet exists
+  const hasExistingStandaloneWallet = useCallback((): boolean => {
+    return hasStandaloneWallet();
   }, []);
 
   return {
@@ -180,10 +226,14 @@ export function useAppWallet({
     isAuthorized,
     isLoading,
     error,
+    mode: currentMode,
     initializeWallet,
     authorizeDelegate,
     fundWallet,
     refreshBalance,
     disconnect,
+    initializeStandaloneWallet,
+    getPrivateKey,
+    hasExistingStandaloneWallet,
   };
 }

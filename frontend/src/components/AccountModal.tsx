@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { truncateAddress, formatBalance, getFuelEmoji } from '../utils/formatters';
 import type { Profile } from '../types/contracts';
+import type { WalletMode } from '../hooks/useAppWallet';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -17,7 +18,8 @@ interface AccountModalProps {
   // Profile
   profile: Profile | null;
   onCreateProfile: (name: string, bio: string) => Promise<void>;
-  onUpdateProfile: (name: string, bio: string) => Promise<void>;
+  onUpdateDisplayName: (name: string) => Promise<void>;
+  onUpdateBio: (bio: string) => Promise<void>;
 
   // In-app wallet
   appWalletAddress: string | null;
@@ -25,6 +27,11 @@ interface AccountModalProps {
   isAuthorized: boolean;
   onSetupAppWallet: () => Promise<void>;
   onTopUp: (amount: bigint) => Promise<void>;
+
+  // Wallet mode
+  walletMode?: WalletMode;
+  onExportPrivateKey?: () => void;
+  onConnectBrowserWallet?: () => void;
 }
 
 const SUGGESTED_AMOUNTS = [
@@ -42,19 +49,24 @@ export function AccountModal({
   onDisconnect,
   profile,
   onCreateProfile,
-  onUpdateProfile,
+  onUpdateDisplayName,
+  onUpdateBio,
   appWalletAddress,
   appWalletBalance,
   isAuthorized,
   onSetupAppWallet,
   onTopUp,
+  walletMode = 'none',
+  onExportPrivateKey,
+  onConnectBrowserWallet,
 }: AccountModalProps) {
+  const isStandaloneMode = walletMode === 'standalone';
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
-  const [customAmount, setCustomAmount] = useState('');
+  const [customAmount, setCustomAmount] = useState('10');
 
   // Update form when profile changes
   useEffect(() => {
@@ -82,7 +94,14 @@ export function AccountModal({
 
     try {
       if (profile?.exists) {
-        await onUpdateProfile(displayName.trim(), bio.trim());
+        // Update display name if changed
+        if (displayName.trim() !== profile.displayName) {
+          await onUpdateDisplayName(displayName.trim());
+        }
+        // Update bio if changed
+        if (bio.trim() !== profile.bio) {
+          await onUpdateBio(bio.trim());
+        }
       } else {
         await onCreateProfile(displayName.trim(), bio.trim());
       }
@@ -156,16 +175,44 @@ export function AccountModal({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* BROWSER WALLET SECTION */}
+          {/* WALLET SECTION */}
           <div>
-            <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">BROWSER WALLET</h3>
+            <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">
+              {isStandaloneMode ? 'IN-APP WALLET' : 'BROWSER WALLET'}
+            </h3>
             <div className="border border-orange-700 p-4">
               {walletAddress ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between font-mono text-sm">
-                    <span className="text-orange-400">● Connected:</span>
+                    <span className="text-orange-400">
+                      {isStandaloneMode ? '🔐 In-App:' : '● Connected:'}
+                    </span>
                     <span className="text-cyan-400">{truncateAddress(walletAddress)}</span>
                   </div>
+                  {isStandaloneMode && (
+                    <div className="flex items-center justify-between font-mono text-sm">
+                      <span className="text-orange-400">Balance:</span>
+                      <span className="text-cyan-400">
+                        {formatBalance(appWalletBalance)} WND {getFuelEmoji(appWalletBalance)}
+                      </span>
+                    </div>
+                  )}
+                  {isStandaloneMode && onExportPrivateKey && (
+                    <button
+                      onClick={onExportPrivateKey}
+                      className="w-full py-2 border border-yellow-600 text-yellow-400 font-mono text-sm hover:border-yellow-500"
+                    >
+                      EXPORT PRIVATE KEY
+                    </button>
+                  )}
+                  {isStandaloneMode && onConnectBrowserWallet && (
+                    <button
+                      onClick={onConnectBrowserWallet}
+                      className="w-full py-2 border border-cyan-600 text-cyan-400 font-mono text-sm hover:border-cyan-500"
+                    >
+                      CONNECT BROWSER WALLET
+                    </button>
+                  )}
                   <button
                     onClick={onDisconnect}
                     className="w-full py-2 border border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
@@ -237,8 +284,8 @@ export function AccountModal({
             </div>
           )}
 
-          {/* IN-APP WALLET SECTION */}
-          {walletAddress && profile?.exists && (
+          {/* IN-APP WALLET SECTION (browser wallet mode only) */}
+          {!isStandaloneMode && walletAddress && profile?.exists && (
             <div>
               <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">
                 IN-APP WALLET <span className="text-orange-600 text-xs">(gasless messaging)</span>
@@ -291,14 +338,19 @@ export function AccountModal({
                     </div>
 
                     <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={customAmount}
-                        onChange={(e) => setCustomAmount(e.target.value)}
-                        placeholder="Custom amount"
-                        disabled={isFunding}
-                        className="flex-1 px-3 py-2 bg-black border border-orange-500 text-orange-400 font-mono text-sm focus:outline-none"
-                      />
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={customAmount}
+                          onChange={(e) => setCustomAmount(e.target.value)}
+                          placeholder="10"
+                          disabled={isFunding}
+                          className="w-full px-3 py-2 pr-12 bg-black border border-orange-500 text-orange-400 font-mono text-sm focus:outline-none text-right"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-600 font-mono text-sm pointer-events-none">
+                          PAS
+                        </span>
+                      </div>
                       <button
                         onClick={handleCustomTopUp}
                         disabled={isFunding || !customAmount}

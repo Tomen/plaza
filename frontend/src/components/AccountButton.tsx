@@ -1,4 +1,5 @@
 import { truncateAddress, getFuelEmoji } from '../utils/formatters';
+import type { WalletMode } from '../hooks/useAppWallet';
 
 interface AccountButtonProps {
   // Wallet state
@@ -16,6 +17,9 @@ interface AccountButtonProps {
 
   // Modal control
   onOpenAccount: () => void;
+
+  // Wallet mode
+  walletMode?: WalletMode;
 }
 
 export function AccountButton({
@@ -27,11 +31,17 @@ export function AccountButton({
   isAuthorized,
   balance,
   onOpenAccount,
+  walletMode = 'none',
 }: AccountButtonProps) {
   // Determine button state and display
   const isConnected = !!walletAddress;
-  const displayText = hasProfile && profileName ? profileName : isConnected ? truncateAddress(walletAddress!) : 'CONNECT WALLET';
-  const showFuelIcon = isConnected && hasProfile && isAuthorized;
+  const isInAppMode = walletMode === 'standalone';
+  const displayText = hasProfile && profileName
+    ? profileName
+    : isConnected
+      ? truncateAddress(walletAddress!)
+      : 'CONNECT WALLET';
+  const showFuelIcon = isConnected && isInAppMode;
   const fuelEmoji = showFuelIcon ? getFuelEmoji(balance) : '';
 
   // Button click handler
@@ -59,6 +69,7 @@ export function AccountButton({
           <span className={isConnected ? 'text-cyan-400' : 'text-red-500'}>
             {isConnected ? '●' : '○'}
           </span>
+          {isInAppMode && <span className="text-yellow-500">🔐</span>}
           {displayText}
           {showFuelIcon && <span>{fuelEmoji}</span>}
         </span>

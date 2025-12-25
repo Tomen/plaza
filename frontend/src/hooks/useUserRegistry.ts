@@ -18,8 +18,10 @@ interface UseUserRegistryReturn {
 
   // Profile actions
   createProfile: (displayName: string, bio: string) => Promise<void>;
+  createDefaultProfile: () => Promise<void>;
   updateDisplayName: (displayName: string) => Promise<void>;
   updateBio: (bio: string) => Promise<void>;
+  transferProfileOwnership: (newOwner: string) => Promise<void>;
 
   // Link actions
   addLink: (name: string, url: string) => Promise<void>;
@@ -115,6 +117,29 @@ export function useUserRegistry({
       await loadProfile();
     },
     [getWriteContract, loadProfile]
+  );
+
+  const createDefaultProfile = useCallback(async () => {
+    const contract = await getWriteContract();
+    if (!contract) throw new Error("Contract not available");
+
+    const tx = await contract.createDefaultProfile();
+    await tx.wait();
+    await loadProfile();
+  }, [getWriteContract, loadProfile]);
+
+  const transferProfileOwnership = useCallback(
+    async (newOwner: string) => {
+      const contract = await getWriteContract();
+      if (!contract) throw new Error("Contract not available");
+
+      const tx = await contract.transferProfileOwnership(newOwner);
+      await tx.wait();
+      // After transfer, the current user no longer has a profile
+      setProfile(null);
+      setLinks([]);
+    },
+    [getWriteContract]
   );
 
   const updateDisplayName = useCallback(
@@ -249,8 +274,10 @@ export function useUserRegistry({
     isLoading,
     error,
     createProfile,
+    createDefaultProfile,
     updateDisplayName,
     updateBio,
+    transferProfileOwnership,
     addLink,
     removeLink,
     clearLinks,

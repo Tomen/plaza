@@ -9,5 +9,16 @@
       "general": "0x0000000000000000000000000000000000000000"
     },
     "deployedAt": "2025-12-25T00:00:00Z"
+  },
+  "polkadot-asset-hub-testnet": {
+    "network": "Polkadot Asset Hub Testnet",
+    "chainId": 420420422,
+    "rpcUrl": "https://testnet-passet-hub-eth-rpc.polkadot.io",
+    "userRegistry": "0x4D9D54226cC45b5C448B977fEC8baED01d63Fd8b",
+    "channelRegistry": "0x66ad45c21deDF0F6dd18A3D3d6E811f087341f57",
+    "channels": {
+      "general": "0xB1fF5adBA6050bdCE6C4d62024a4E827e6AaB8a7"
+    },
+    "deployedAt": "2025-12-25T22:04:46.346Z"
   }
 }

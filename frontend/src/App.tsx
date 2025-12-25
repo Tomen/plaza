@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import { ethers } from 'ethers';
 import { useWallet } from './hooks/useWallet';
 import { useChannelRegistry } from './hooks/useChannelRegistry';
 import { useChannel } from './hooks/useChannel';
 import { useUserRegistry } from './hooks/useUserRegistry';
-import { useAppWallet } from './hooks/useAppWallet';
+import { useAppWallet, type WalletMode } from './hooks/useAppWallet';
+import { hasStandaloneWallet, getStoredStandaloneWallet } from './utils/appWallet';
 import { AccountButton } from './components/AccountButton';
 import { AccountModal } from './components/AccountModal';
 import { ChatFeed } from './components/ChatFeed';
@@ -12,7 +15,14 @@ import { MessageInput } from './components/MessageInput';
 import { Sidebar } from './components/Sidebar';
 import { ChannelHeader } from './components/ChannelHeader';
 import { CreateChannelModal } from './components/CreateChannelModal';
+import { WalletChoiceModal } from './components/WalletChoiceModal';
+import { InAppWalletSetup } from './components/InAppWalletSetup';
+import { PrivateKeyExportModal } from './components/PrivateKeyExportModal';
+import { LinkBrowserWalletModal } from './components/LinkBrowserWalletModal';
 import type { PostingMode } from './types/contracts';
+
+// RPC URL for standalone wallet
+const RPC_URL = 'https://westend-asset-hub-eth-rpc.polkadot.io';
 
 function App() {
   // Get registry address from URL parameter (?registry=0x...)
@@ -20,36 +30,76 @@ function App() {
   const registryAddress = urlParams.get('registry');
   const directChannelAddress = urlParams.get('channel');
 
-  // Wallet state
-  const wallet = useWallet();
+  // Wallet mode: 'browser' | 'standalone' | 'none'
+  const [walletMode, setWalletMode] = useState<WalletMode>(() => {
+    // Check if user has an existing standalone wallet
+    if (hasStandaloneWallet()) {
+      return 'standalone';
+    }
+    return 'none';
+  });
+
+  // Standalone provider (for in-app wallet mode)
+  const [standaloneProvider] = useState(() => new ethers.JsonRpcProvider(RPC_URL));
+
+  // Browser wallet state
+  const browserWallet = useWallet();
+
+  // Determine the active provider based on mode
+  const activeProvider = walletMode === 'standalone' ? standaloneProvider : browserWallet.provider;
+
+  // App wallet (supports both modes)
+  const appWallet = useAppWallet({
+    userAddress: walletMode === 'browser' ? browserWallet.address : null,
+    provider: browserWallet.provider,
+    mode: walletMode,
+  });
+
+  // Get the active wallet address
+  const activeAddress = walletMode === 'standalone'
+    ? appWallet.appWalletAddress
+    : browserWallet.address;
 
   // Channel registry
   const channelRegistry = useChannelRegistry({
     registryAddress,
-    provider: wallet.provider,
+    provider: activeProvider,
   });
 
   // User registry (get address from channel registry)
   const [userRegistryAddress, setUserRegistryAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    if (registryAddress && wallet.provider) {
+    if (registryAddress && activeProvider) {
       channelRegistry.getUserRegistryAddress().then(setUserRegistryAddress).catch(() => {});
     }
-  }, [registryAddress, wallet.provider, channelRegistry]);
+  }, [registryAddress, activeProvider, channelRegistry]);
+
+  // Create a wrapped provider for userRegistry that supports signing
+  const [signingProvider, setSigningProvider] = useState<ethers.BrowserProvider | null>(null);
+
+  useEffect(() => {
+    if (walletMode === 'standalone' && appWallet.appWallet) {
+      // For standalone mode, create a provider wrapper that uses the app wallet
+      // We need to create a BrowserProvider-like interface
+      setSigningProvider(browserWallet.provider);
+    } else {
+      setSigningProvider(browserWallet.provider);
+    }
+  }, [walletMode, appWallet.appWallet, browserWallet.provider]);
 
   const userRegistry = useUserRegistry({
     registryAddress: userRegistryAddress,
-    provider: wallet.provider,
-    userAddress: wallet.address,
+    provider: signingProvider,
+    userAddress: activeAddress,
   });
 
-  // App wallet for gasless messaging
-  const appWallet = useAppWallet({
-    userAddress: wallet.address,
-    provider: wallet.provider,
-    checkDelegateOnChain: userRegistry.isDelegate,
-  });
+  // Initialize standalone wallet if mode is standalone
+  useEffect(() => {
+    if (walletMode === 'standalone' && standaloneProvider && !appWallet.appWallet) {
+      appWallet.initializeStandaloneWallet(standaloneProvider);
+    }
+  }, [walletMode, standaloneProvider, appWallet]);
 
   // Selected channel
   const [selectedChannel, setSelectedChannel] = useState<string | null>(directChannelAddress);
@@ -82,17 +132,43 @@ function App() {
   // Modals
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
+  const [showWalletChoiceModal, setShowWalletChoiceModal] = useState(walletMode === 'none');
+  const [showInAppSetup, setShowInAppSetup] = useState(false);
+  const [showExportKeyModal, setShowExportKeyModal] = useState(false);
+  const [showLinkBrowserModal, setShowLinkBrowserModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Show in-app wallet setup banner (optional for gasless messaging)
-  const showAppWalletBanner = wallet.address && userRegistry.profile?.exists && !appWallet.isAuthorized;
+  // Check if MetaMask is available
+  const hasMetaMask = typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
 
-  // Send message handler
+  // Show in-app wallet setup banner (optional for gasless messaging) - only in browser mode
+  const showAppWalletBanner = walletMode === 'browser' && browserWallet.address && userRegistry.profile?.exists && !appWallet.isAuthorized;
+
+  // Detect when browser wallet connects in standalone mode (for linking)
+  useEffect(() => {
+    if (walletMode === 'standalone' && browserWallet.address && userRegistry.profile?.exists) {
+      setShowLinkBrowserModal(true);
+    }
+  }, [walletMode, browserWallet.address, userRegistry.profile?.exists]);
+
+  // Send message handler with auto-profile creation
   const handleSendMessage = async (content: string): Promise<boolean> => {
     if (!content.trim()) return false;
 
     setIsSending(true);
     try {
+      // Auto-create profile if user doesn't have one
+      if (!userRegistry.profile?.exists) {
+        const toastId = toast.loading('Creating profile...');
+        try {
+          await userRegistry.createDefaultProfile();
+          toast.success('Profile created!', { id: toastId });
+        } catch (err) {
+          toast.error('Failed to create profile', { id: toastId });
+          throw err;
+        }
+      }
+
       await channel.postMessage(content);
       return true;
     } catch (err) {
@@ -114,8 +190,46 @@ function App() {
     await appWallet.authorizeDelegate(userRegistry.addDelegate);
   };
 
-  // Determine if user can post (just need wallet connection)
-  const canPost = !!wallet.address;
+  // Wallet choice handlers
+  const handleSelectBrowserWallet = async () => {
+    setShowWalletChoiceModal(false);
+    setWalletMode('browser');
+    await browserWallet.connect();
+  };
+
+  const handleSelectInAppWallet = () => {
+    setShowWalletChoiceModal(false);
+    setShowInAppSetup(true);
+    // Initialize the standalone wallet
+    appWallet.initializeStandaloneWallet(standaloneProvider);
+  };
+
+  const handleInAppSetupContinue = () => {
+    setShowInAppSetup(false);
+    setWalletMode('standalone');
+  };
+
+  const handleInAppSetupBack = () => {
+    setShowInAppSetup(false);
+    setShowWalletChoiceModal(true);
+  };
+
+  // Link browser wallet handlers
+  const handleAddBrowserAsDelegate = async () => {
+    if (!browserWallet.address) return;
+    await userRegistry.addDelegate(browserWallet.address);
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!browserWallet.address) return;
+    await userRegistry.transferProfileOwnership(browserWallet.address);
+    // After transfer, switch to browser mode
+    setWalletMode('browser');
+    setShowLinkBrowserModal(false);
+  };
+
+  // Determine if user can post
+  const canPost = !!activeAddress;
 
   return (
     <div className="min-h-screen bg-black flex flex-col scanline">
@@ -158,21 +272,22 @@ function App() {
             </h1>
           </div>
           <AccountButton
-            walletAddress={wallet.address}
-            isConnecting={wallet.isConnecting}
-            onConnect={wallet.connect}
+            walletAddress={activeAddress}
+            isConnecting={browserWallet.isConnecting}
+            onConnect={() => setShowWalletChoiceModal(true)}
             profileName={userRegistry.profile?.displayName || null}
             hasProfile={userRegistry.profile?.exists || false}
             isAuthorized={appWallet.isAuthorized}
             balance={appWallet.balance}
             onOpenAccount={() => setShowAccountModal(true)}
+            walletMode={walletMode}
           />
         </div>
 
         {/* Line 2: Subtitle */}
         <div className="px-4 pb-4">
           <p className="text-xs text-cyan-400 text-shadow-neon-sm font-mono">
-            DECENTRALIZED MESSAGING
+            DECENTRALIZED MESSAGING {walletMode === 'standalone' && '(IN-APP WALLET)'}
           </p>
         </div>
       </header>
@@ -186,8 +301,8 @@ function App() {
             selectedChannel={selectedChannel}
             onSelectChannel={setSelectedChannel}
             onCreateChannel={() => setShowCreateChannelModal(true)}
-            provider={wallet.provider}
-            isConnected={!!wallet.address}
+            provider={activeProvider}
+            isConnected={!!activeAddress}
           />
         )}
 
@@ -227,12 +342,12 @@ function App() {
           )}
 
           {/* Error display */}
-          {(wallet.error || channel.error || userRegistry.error) && (
+          {(browserWallet.error || channel.error || userRegistry.error) && (
             <div className="border-b-2 border-red-500 bg-red-950 bg-opacity-20 p-4">
               <div className="flex items-center font-mono">
                 <span className="text-red-500 mr-3">X</span>
                 <p className="text-red-400 text-sm">
-                  {wallet.error || channel.error || userRegistry.error}
+                  {browserWallet.error || channel.error || userRegistry.error}
                 </p>
               </div>
             </div>
@@ -248,7 +363,7 @@ function App() {
           <ChatFeed
             messages={channel.messages}
             isLoading={channel.isLoading && channel.messages.length === 0}
-            currentAddress={wallet.address}
+            currentAddress={activeAddress}
           />
 
           {/* Message input */}
@@ -261,21 +376,61 @@ function App() {
       </main>
 
       {/* Modals */}
+      <WalletChoiceModal
+        isOpen={showWalletChoiceModal}
+        onSelectBrowser={handleSelectBrowserWallet}
+        onSelectInApp={handleSelectInAppWallet}
+        hasMetaMask={hasMetaMask}
+      />
+
+      <InAppWalletSetup
+        isOpen={showInAppSetup}
+        walletAddress={appWallet.appWalletAddress || ''}
+        balance={appWallet.balance}
+        onContinue={handleInAppSetupContinue}
+        onRefreshBalance={appWallet.refreshBalance}
+        onBack={handleInAppSetupBack}
+      />
+
       <AccountModal
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
-        walletAddress={wallet.address}
-        isConnecting={wallet.isConnecting}
-        onConnect={wallet.connect}
-        onDisconnect={wallet.disconnect}
+        walletAddress={activeAddress}
+        isConnecting={browserWallet.isConnecting}
+        onConnect={() => setShowWalletChoiceModal(true)}
+        onDisconnect={() => {
+          browserWallet.disconnect();
+          appWallet.disconnect();
+          setWalletMode('none');
+          setShowWalletChoiceModal(true);
+        }}
         profile={userRegistry.profile}
         onCreateProfile={userRegistry.createProfile}
-        onUpdateProfile={userRegistry.updateProfile}
+        onUpdateDisplayName={userRegistry.updateDisplayName}
+        onUpdateBio={userRegistry.updateBio}
         appWalletAddress={appWallet.appWalletAddress}
         appWalletBalance={appWallet.balance}
         isAuthorized={appWallet.isAuthorized}
         onSetupAppWallet={handleSetupAppWallet}
         onTopUp={appWallet.fundWallet}
+        walletMode={walletMode}
+        onExportPrivateKey={() => setShowExportKeyModal(true)}
+        onConnectBrowserWallet={browserWallet.connect}
+      />
+
+      <PrivateKeyExportModal
+        isOpen={showExportKeyModal}
+        onClose={() => setShowExportKeyModal(false)}
+        privateKey={appWallet.getPrivateKey() || ''}
+      />
+
+      <LinkBrowserWalletModal
+        isOpen={showLinkBrowserModal}
+        onClose={() => setShowLinkBrowserModal(false)}
+        inAppAddress={appWallet.appWalletAddress || ''}
+        browserAddress={browserWallet.address || ''}
+        onAddAsDelegate={handleAddBrowserAsDelegate}
+        onTransferOwnership={handleTransferOwnership}
       />
 
       <CreateChannelModal
