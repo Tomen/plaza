@@ -237,7 +237,7 @@ For in-app wallet users who want to backup their wallet.
 
 | Hook | Purpose |
 |------|---------|
-| `useWallet` | Browser wallet connection (MetaMask) |
+| `useWallet` | Browser wallet connection (MetaMask). Returns `isInitialized` to indicate initial connection check is complete. |
 | `useAppWallet` | In-app wallet management (both modes) |
 | `useUserRegistry` | Profile CRUD, delegate management |
 | `useChannelRegistry` | Channel listing and creation |
@@ -258,14 +258,16 @@ For in-app wallet users who want to backup their wallet.
 | Profile disappears after transfer | Profile not refreshed | Add useEffect to refresh on mode change |
 | Modal behind modal | Parent modal not closed | Close parent modal before opening child |
 | Infinite re-renders | Hook object in useEffect deps | Only depend on primitive values, not whole hook return |
+| WalletChoiceModal shows on reload | Effect fires before MetaMask auto-connects | Check `browserWallet.isInitialized` before showing modal |
 
 ### Debug Checklist
 
 1. **Check wallet mode**: Is `walletMode` correct for the current state?
 2. **Check isReady**: Is `walletConfig.isReady` true before attempting operations?
-3. **Check provider type**: Is the provider `BrowserProvider` or `JsonRpcProvider`?
-4. **Check signer**: Is `walletConfig.activeSigner` passed to hooks in standalone mode?
-5. **Check dependencies**: Are useEffect dependencies causing infinite loops?
+3. **Check isInitialized**: Is `browserWallet.isInitialized` true before showing connection modals?
+4. **Check provider type**: Is the provider `BrowserProvider` or `JsonRpcProvider`?
+5. **Check signer**: Is `walletConfig.activeSigner` passed to hooks in standalone mode?
+6. **Check dependencies**: Are useEffect dependencies causing infinite loops?
 
 ### Console Debugging
 
@@ -276,9 +278,10 @@ useEffect(() => {
   console.log('Wallet State:', {
     mode: walletMode,
     isReady: walletConfig.isReady,
+    isInitialized: browserWallet.isInitialized,
     activeAddress: walletConfig.activeAddress,
     hasSigner: !!walletConfig.activeSigner,
     providerType: walletConfig.activeProvider?.constructor.name,
   });
-}, [walletMode, walletConfig]);
+}, [walletMode, walletConfig, browserWallet.isInitialized]);
 ```

@@ -180,8 +180,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletMode, walletConfig.activeAddress, walletConfig.activeProvider]);
 
-  // Selected channel
-  const [selectedChannel, setSelectedChannel] = useState<string | null>(directChannelAddress);
+  // Selected channel - URL param takes priority, then localStorage, then first available
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(() => {
+    if (directChannelAddress) return directChannelAddress;
+    return localStorage.getItem('selectedChannel');
+  });
 
   // Use first channel if none selected and channels are available
   useEffect(() => {
@@ -190,9 +193,32 @@ function App() {
     }
   }, [selectedChannel, channelRegistry.channels]);
 
-  // DM-related state
-  const [viewMode, setViewMode] = useState<ViewMode>('channels');
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  // Persist selected channel
+  useEffect(() => {
+    if (selectedChannel) {
+      localStorage.setItem('selectedChannel', selectedChannel);
+    }
+  }, [selectedChannel]);
+
+  // DM-related state - restore from localStorage
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const stored = localStorage.getItem('viewMode') as ViewMode | null;
+    return stored === 'dms' ? 'dms' : 'channels';
+  });
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(() => {
+    return localStorage.getItem('selectedConversation');
+  });
+
+  // Persist view mode and selected conversation
+  useEffect(() => {
+    localStorage.setItem('viewMode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      localStorage.setItem('selectedConversation', selectedConversation);
+    }
+  }, [selectedConversation]);
   const [showNewDMModal, setShowNewDMModal] = useState(false);
   const [dmOtherParticipant, setDmOtherParticipant] = useState<string | null>(null);
   const [dmOtherPublicKey, setDmOtherPublicKey] = useState<string | null>(null);
@@ -295,6 +321,24 @@ function App() {
   // Track if user explicitly initiated browser wallet connection (to avoid showing modal on page load)
   const [pendingBrowserLink, setPendingBrowserLink] = useState(false);
 
+  // Show wallet choice modal when not connected
+  // This handles the case where walletMode is 'browser' but MetaMask isn't connected
+  // Skip if in standalone mode (wallet initializes async) or if wallet is still initializing
+  useEffect(() => {
+    if (walletMode === 'standalone') {
+      // Standalone wallet initializes async, don't show modal
+      return;
+    }
+    // Wait for browser wallet to finish initial connection check
+    if (!browserWallet.isInitialized) {
+      return;
+    }
+    if (walletMode === 'browser' && !browserWallet.address && !browserWallet.isConnecting) {
+      // Browser mode but not connected after initialization - show modal
+      setShowWalletChoiceModal(true);
+    }
+  }, [walletMode, browserWallet.address, browserWallet.isConnecting, browserWallet.isInitialized]);
+
   // Check if MetaMask is available
   const hasMetaMask = typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
 
@@ -329,6 +373,11 @@ function App() {
         try {
           await userRegistry.createDefaultProfile();
           toast.success('Profile created!', { id: toastId });
+
+          // Also initialize session key for encrypted DMs
+          if (!sessionKeys.hasLocalKey) {
+            await sessionKeys.initializeSessionKey();
+          }
         } catch (err) {
           toast.error('Failed to create profile', { id: toastId });
           throw err;
@@ -392,6 +441,11 @@ function App() {
       try {
         await userRegistry.createDefaultProfile();
         toast.success('Profile created!', { id: toastId });
+
+        // Also initialize session key for encrypted DMs
+        if (!sessionKeys.hasLocalKey) {
+          await sessionKeys.initializeSessionKey();
+        }
       } catch (err) {
         toast.error('Failed to create profile', { id: toastId });
         throw err;
@@ -703,6 +757,8 @@ function App() {
           setPendingBrowserLink(true);
           browserWallet.connect();
         }}
+        hasSessionKey={sessionKeys.hasLocalKey}
+        onInitializeSessionKey={sessionKeys.initializeSessionKey}
       />
 
       <PrivateKeyExportModal

@@ -6,6 +6,7 @@ export interface WalletState {
   provider: BrowserProvider | null;
   signer: ethers.Signer | null;
   isConnecting: boolean;
+  isInitialized: boolean; // True after initial connection check completes
   error: string | null;
 }
 
@@ -15,6 +16,7 @@ export function useWallet() {
     provider: null,
     signer: null,
     isConnecting: false,
+    isInitialized: false,
     error: null,
   });
 
@@ -22,6 +24,9 @@ export function useWallet() {
     if (typeof window.ethereum !== 'undefined') {
       checkConnection();
       setupEventListeners();
+    } else {
+      // No MetaMask, mark as initialized immediately
+      setWalletState(prev => ({ ...prev, isInitialized: true }));
     }
   }, []);
 
@@ -38,11 +43,16 @@ export function useWallet() {
           provider,
           signer,
           isConnecting: false,
+          isInitialized: true,
           error: null,
         });
+      } else {
+        // No accounts connected, but check is complete
+        setWalletState(prev => ({ ...prev, isInitialized: true }));
       }
     } catch (error) {
       console.error('Error checking connection:', error);
+      setWalletState(prev => ({ ...prev, isInitialized: true }));
     }
   };
 
@@ -83,6 +93,7 @@ export function useWallet() {
         provider,
         signer,
         isConnecting: false,
+        isInitialized: true,
         error: null,
       });
     } catch (error: any) {
@@ -100,6 +111,7 @@ export function useWallet() {
       provider: null,
       signer: null,
       isConnecting: false,
+      isInitialized: true, // Stay initialized after disconnect
       error: null,
     });
   };
