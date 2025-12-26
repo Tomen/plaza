@@ -1,14 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ethers } from "ethers";
 import type { Message, FormattedMessage, ChannelInfo, PostingMode } from "../types/contracts";
 import ChatChannelABI from "../contracts/ChatChannel.json";
 import { formatTimestamp } from "../utils/formatters";
+import { createReadContract, createWriteContract, type Provider, type Signer } from "../utils/contracts";
 
 interface UseChannelProps {
   channelAddress: string | null;
-  provider: ethers.BrowserProvider | null;
-  appWallet?: ethers.Wallet | null;
+  provider: Provider | null;
+  appWallet?: Signer | null;
   getDisplayName?: (address: string) => Promise<string>;
+  enabled?: boolean;
 }
 
 interface UseChannelReturn {
@@ -29,6 +30,7 @@ export function useChannel({
   provider,
   appWallet,
   getDisplayName,
+  enabled = true,
 }: UseChannelProps): UseChannelReturn {
   const [messages, setMessages] = useState<FormattedMessage[]>([]);
   const [channelInfo, setChannelInfo] = useState<ChannelInfo | null>(null);
@@ -37,24 +39,16 @@ export function useChannel({
 
   const pollIntervalRef = useRef<number | null>(null);
 
-  const getContract = useCallback(
-    (signer?: ethers.Wallet | ethers.Signer) => {
-      if (!channelAddress || !provider) return null;
+  const getReadContract = useCallback(() => {
+    return createReadContract(channelAddress, ChatChannelABI.abi, provider);
+  }, [channelAddress, provider]);
 
-      if (signer) {
-        const connectedSigner = signer instanceof ethers.Wallet
-          ? signer.connect(provider)
-          : signer;
-        return new ethers.Contract(channelAddress, ChatChannelABI.abi, connectedSigner);
-      }
-
-      return new ethers.Contract(channelAddress, ChatChannelABI.abi, provider);
-    },
-    [channelAddress, provider]
-  );
+  const getWriteContract = useCallback(async () => {
+    return createWriteContract(channelAddress, ChatChannelABI.abi, provider, appWallet ?? null);
+  }, [channelAddress, provider, appWallet]);
 
   const loadChannelInfo = useCallback(async () => {
-    const contract = getContract();
+    const contract = getReadContract();
     if (!contract) return;
 
     try {
@@ -70,10 +64,10 @@ export function useChannel({
     } catch (err) {
       console.error("Failed to load channel info:", err);
     }
-  }, [getContract]);
+  }, [getReadContract]);
 
   const loadMessages = useCallback(async () => {
-    const contract = getContract();
+    const contract = getReadContract();
     if (!contract) {
       setMessages([]);
       return;
@@ -122,23 +116,16 @@ export function useChannel({
     } finally {
       setIsLoading(false);
     }
-  }, [getContract, getDisplayName]);
+  }, [getReadContract, getDisplayName]);
 
   const postMessage = useCallback(
     async (content: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       if (!content.trim()) {
         throw new Error("Message cannot be empty");
       }
 
-      // Prefer app wallet for gasless UX, fallback to browser signer
-      let contract;
-      if (appWallet && provider) {
-        contract = getContract(appWallet);
-      } else if (provider) {
-        const signer = await provider.getSigner();
-        contract = getContract(signer);
-      }
-
+      const contract = await getWriteContract();
       if (!contract) {
         throw new Error("Contract not available");
       }
@@ -151,7 +138,7 @@ export function useChannel({
         throw err instanceof Error ? err : new Error("Failed to post message");
       }
     },
-    [getContract, appWallet, provider, loadMessages]
+    [enabled, getWriteContract, loadMessages]
   );
 
   // Load messages and channel info when channel changes

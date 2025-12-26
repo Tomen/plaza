@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { truncateAddress } from '../utils/formatters';
 
@@ -7,8 +7,11 @@ interface LinkBrowserWalletModalProps {
   onClose: () => void;
   inAppAddress: string;
   browserAddress: string;
+  inAppHasProfile: boolean;
+  checkBrowserHasProfile: () => Promise<boolean>;
   onAddAsDelegate: () => Promise<void>;
   onTransferOwnership: () => Promise<void>;
+  onSwitchToBrowser: () => void;
 }
 
 export function LinkBrowserWalletModal({
@@ -16,11 +19,29 @@ export function LinkBrowserWalletModal({
   onClose,
   inAppAddress,
   browserAddress,
+  inAppHasProfile,
+  checkBrowserHasProfile,
   onAddAsDelegate,
   onTransferOwnership,
+  onSwitchToBrowser,
 }: LinkBrowserWalletModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [action, setAction] = useState<'delegate' | 'transfer' | null>(null);
+  const [action, setAction] = useState<'delegate' | 'transfer' | 'switch' | null>(null);
+  const [browserHasProfile, setBrowserHasProfile] = useState<boolean | null>(null);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
+
+  // Check if browser wallet has a profile when modal opens
+  useEffect(() => {
+    if (isOpen && browserAddress) {
+      setIsCheckingProfile(true);
+      setConfirmAbandon(false);
+      checkBrowserHasProfile()
+        .then(setBrowserHasProfile)
+        .catch(() => setBrowserHasProfile(false))
+        .finally(() => setIsCheckingProfile(false));
+    }
+  }, [isOpen, browserAddress, checkBrowserHasProfile]);
 
   if (!isOpen) return null;
 
@@ -58,6 +79,17 @@ export function LinkBrowserWalletModal({
     }
   };
 
+  const handleSwitchToBrowser = () => {
+    setAction('switch');
+    toast.success('Switched to browser wallet!');
+    onSwitchToBrowser();
+  };
+
+  // Determine which scenario we're in (treat null as false while checking)
+  const showTransferOption = inAppHasProfile && browserHasProfile === false;
+  const showSwitchOption = browserHasProfile === true || !inAppHasProfile;
+  const needsAbandonConfirm = browserHasProfile === true && inAppHasProfile;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -67,85 +99,173 @@ export function LinkBrowserWalletModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-cyan-500 bg-black p-6">
-        <h2 className="text-xl font-bold text-cyan-500 text-shadow-neon mb-2 font-mono text-center">
+      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-accent-500 bg-black p-6">
+        <h2 className="text-xl font-bold text-accent-500 text-shadow-neon mb-2 font-mono text-center">
           ▄▄▄ LINK BROWSER WALLET ▄▄▄
         </h2>
-        <p className="text-cyan-600 font-mono text-sm text-center mb-6">
+        <p className="text-accent-600 font-mono text-sm text-center mb-6">
           Browser wallet connected! Choose how to link it.
         </p>
 
         {/* Wallet Info */}
-        <div className="mb-4 p-3 border border-cyan-700 bg-cyan-950 bg-opacity-20">
+        <div className="mb-4 p-3 border border-accent-700 bg-accent-950 bg-opacity-20">
           <div className="font-mono text-xs space-y-1">
-            <p className="text-cyan-600">
-              <span className="text-cyan-400">IN-APP:</span> {truncateAddress(inAppAddress)}
-            </p>
-            <p className="text-cyan-600">
-              <span className="text-cyan-400">BROWSER:</span> {truncateAddress(browserAddress)}
-            </p>
+            <div className="flex justify-between">
+              <span className="text-accent-400">IN-APP:</span>
+              <span className="text-accent-600">
+                {truncateAddress(inAppAddress)}
+                {inAppHasProfile && <span className="text-green-500 ml-2">has profile</span>}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-accent-400">BROWSER:</span>
+              <span className="text-accent-600">
+                {truncateAddress(browserAddress)}
+                {isCheckingProfile ? (
+                  <span className="text-gray-500 ml-2">checking...</span>
+                ) : browserHasProfile ? (
+                  <span className="text-green-500 ml-2">has profile</span>
+                ) : null}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Options */}
-        <div className="space-y-4 mb-6">
-          {/* Option 1: Add as Delegate */}
-          <button
-            onClick={handleAddAsDelegate}
-            disabled={isProcessing}
-            className={`w-full p-4 border-2 text-left transition-all ${
-              isProcessing
-                ? 'border-gray-700 opacity-50'
-                : 'border-orange-500 hover:bg-orange-950 hover:bg-opacity-30'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className="text-2xl">👥</div>
-              <div className="flex-1">
-                <h3 className="font-mono font-bold text-orange-400">
-                  ADD AS DELEGATE
-                </h3>
-                <p className="font-mono text-xs text-orange-600 mt-1">
-                  Browser wallet can post on behalf of your in-app profile. Your profile stays with the in-app wallet.
-                </p>
-              </div>
-              {action === 'delegate' && (
-                <div className="text-orange-400 font-mono text-sm animate-pulse">...</div>
-              )}
-            </div>
-          </button>
+        {/* Loading state */}
+        {isCheckingProfile && (
+          <div className="text-center py-4 text-accent-600 font-mono text-sm">
+            Checking profile status...
+          </div>
+        )}
 
-          {/* Option 2: Transfer Ownership (Recommended) */}
-          <button
-            onClick={handleTransferOwnership}
-            disabled={isProcessing}
-            className={`w-full p-4 border-2 text-left transition-all ${
-              isProcessing
-                ? 'border-gray-700 opacity-50'
-                : 'border-green-500 hover:bg-green-950 hover:bg-opacity-30'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className="text-2xl">🔄</div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-mono font-bold text-green-400">
-                    TRANSFER OWNERSHIP
-                  </h3>
-                  <span className="px-2 py-0.5 bg-green-900 text-green-400 font-mono text-xs border border-green-500">
-                    RECOMMENDED
-                  </span>
+        {/* Options - only show when done checking */}
+        {!isCheckingProfile && (
+          <div className="space-y-4 mb-6">
+            {/* Warning when both have profiles */}
+            {needsAbandonConfirm && (
+              <div className="p-3 border-2 border-yellow-600 bg-yellow-950 bg-opacity-20">
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-500 text-lg">!</span>
+                  <div className="font-mono text-xs text-yellow-600">
+                    <p className="font-bold text-yellow-500 mb-1">Both wallets have profiles!</p>
+                    <p>Your browser wallet already has a profile. If you switch, your in-app wallet profile will be abandoned (it stays on-chain but won't be used).</p>
+                  </div>
                 </div>
-                <p className="font-mono text-xs text-green-600 mt-1">
-                  Move your profile to the browser wallet. More secure for long-term use. In-app wallet will become a delegate.
-                </p>
               </div>
-              {action === 'transfer' && (
-                <div className="text-green-400 font-mono text-sm animate-pulse">...</div>
-              )}
-            </div>
-          </button>
-        </div>
+            )}
+
+            {/* Option: Switch to Browser Wallet */}
+            {showSwitchOption && (
+              <div className={`w-full p-4 border-2 text-left transition-all ${
+                isProcessing
+                  ? 'border-gray-700 opacity-50'
+                  : 'border-accent-500 hover:bg-accent-950 hover:bg-opacity-30'
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl">🔀</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-mono font-bold text-accent-400">
+                        SWITCH TO BROWSER WALLET
+                      </h3>
+                      {!needsAbandonConfirm && (
+                        <span className="px-2 py-0.5 bg-accent-900 text-accent-400 font-mono text-xs border border-accent-500">
+                          RECOMMENDED
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-accent-600 mt-1">
+                      {browserHasProfile
+                        ? 'Use your existing browser wallet profile. More secure for long-term use.'
+                        : 'Switch to browser wallet mode. You can create a profile there.'}
+                    </p>
+                    {needsAbandonConfirm && (
+                      <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={confirmAbandon}
+                          onChange={(e) => setConfirmAbandon(e.target.checked)}
+                          className="w-4 h-4 accent-yellow-500"
+                        />
+                        <span className="font-mono text-xs text-yellow-500">
+                          I understand my in-app profile will be abandoned
+                        </span>
+                      </label>
+                    )}
+                    <button
+                      onClick={handleSwitchToBrowser}
+                      disabled={isProcessing || (needsAbandonConfirm === true && !confirmAbandon)}
+                      className="mt-3 px-4 py-2 bg-accent-900 text-accent-400 border border-accent-500 font-mono text-sm hover:bg-accent-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {action === 'switch' ? '...' : 'SWITCH'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Option: Transfer Ownership (only when browser has no profile) */}
+            {showTransferOption && (
+              <button
+                onClick={handleTransferOwnership}
+                disabled={isProcessing}
+                className={`w-full p-4 border-2 text-left transition-all ${
+                  isProcessing
+                    ? 'border-gray-700 opacity-50'
+                    : 'border-green-500 hover:bg-green-950 hover:bg-opacity-30'
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl">🔄</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-mono font-bold text-green-400">
+                        TRANSFER OWNERSHIP
+                      </h3>
+                      <span className="px-2 py-0.5 bg-green-900 text-green-400 font-mono text-xs border border-green-500">
+                        RECOMMENDED
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-green-600 mt-1">
+                      Move your profile to the browser wallet. More secure for long-term use. In-app wallet will become a delegate.
+                    </p>
+                  </div>
+                  {action === 'transfer' && (
+                    <div className="text-green-400 font-mono text-sm animate-pulse">...</div>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {/* Option: Add as Delegate (always available when in-app has profile) */}
+            {inAppHasProfile && (
+              <button
+                onClick={handleAddAsDelegate}
+                disabled={isProcessing}
+                className={`w-full p-4 border-2 text-left transition-all ${
+                  isProcessing
+                    ? 'border-gray-700 opacity-50'
+                    : 'border-primary-500 hover:bg-primary-950 hover:bg-opacity-30'
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl">👥</div>
+                  <div className="flex-1">
+                    <h3 className="font-mono font-bold text-primary-400">
+                      ADD AS DELEGATE
+                    </h3>
+                    <p className="font-mono text-xs text-primary-600 mt-1">
+                      Browser wallet can post on behalf of your in-app profile. Both profiles continue to exist separately.
+                    </p>
+                  </div>
+                  {action === 'delegate' && (
+                    <div className="text-primary-400 font-mono text-sm animate-pulse">...</div>
+                  )}
+                </div>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Cancel button */}
         <button

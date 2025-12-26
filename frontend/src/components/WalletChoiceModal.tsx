@@ -19,11 +19,11 @@ export function WalletChoiceModal({
       <div className="absolute inset-0 bg-black bg-opacity-90" />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-orange-500 bg-black p-6">
-        <h2 className="text-xl font-bold text-orange-500 text-shadow-neon mb-2 font-mono text-center">
+      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-primary-500 bg-black p-6">
+        <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-2 font-mono text-center">
           ▄▄▄ CONNECT TO CHAT ▄▄▄
         </h2>
-        <p className="text-orange-600 font-mono text-sm text-center mb-6">
+        <p className="text-primary-600 font-mono text-sm text-center mb-6">
           Choose how you want to connect
         </p>
 
@@ -34,24 +34,24 @@ export function WalletChoiceModal({
             disabled={!hasMetaMask}
             className={`w-full p-4 border-2 text-left transition-all ${
               hasMetaMask
-                ? 'border-cyan-500 hover:bg-cyan-950 hover:bg-opacity-30 cursor-pointer'
+                ? 'border-accent-500 hover:bg-accent-950 hover:bg-opacity-30 cursor-pointer'
                 : 'border-gray-700 cursor-not-allowed opacity-50'
             }`}
           >
             <div className="flex items-center gap-4">
               <div className="text-3xl">🦊</div>
               <div className="flex-1">
-                <h3 className={`font-mono font-bold ${hasMetaMask ? 'text-cyan-400' : 'text-gray-500'}`}>
+                <h3 className={`font-mono font-bold ${hasMetaMask ? 'text-accent-400' : 'text-gray-500'}`}>
                   BROWSER WALLET
                 </h3>
-                <p className={`font-mono text-xs mt-1 ${hasMetaMask ? 'text-cyan-600' : 'text-gray-600'}`}>
+                <p className={`font-mono text-xs mt-1 ${hasMetaMask ? 'text-accent-600' : 'text-gray-600'}`}>
                   {hasMetaMask
                     ? 'Connect MetaMask or other browser wallet'
                     : 'MetaMask not detected'}
                 </p>
               </div>
               {hasMetaMask && (
-                <div className="text-cyan-500 font-mono text-sm">
+                <div className="text-accent-500 font-mono text-sm">
                   &gt;
                 </div>
               )}
@@ -61,19 +61,19 @@ export function WalletChoiceModal({
           {/* In-App Wallet Option */}
           <button
             onClick={onSelectInApp}
-            className="w-full p-4 border-2 border-orange-500 hover:bg-orange-950 hover:bg-opacity-30 text-left transition-all"
+            className="w-full p-4 border-2 border-primary-500 hover:bg-primary-950 hover:bg-opacity-30 text-left transition-all"
           >
             <div className="flex items-center gap-4">
               <div className="text-3xl">🔐</div>
               <div className="flex-1">
-                <h3 className="font-mono font-bold text-orange-400">
+                <h3 className="font-mono font-bold text-primary-400">
                   IN-APP WALLET
                 </h3>
-                <p className="font-mono text-xs text-orange-600 mt-1">
+                <p className="font-mono text-xs text-primary-600 mt-1">
                   We'll create a wallet for you in the browser
                 </p>
               </div>
-              <div className="text-orange-500 font-mono text-sm">
+              <div className="text-primary-500 font-mono text-sm">
                 &gt;
               </div>
             </div>

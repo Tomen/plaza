@@ -3,10 +3,13 @@ import { ethers } from "ethers";
 import type { RegisteredChannel } from "../types/contracts";
 import { PostingMode } from "../types/contracts";
 import ChannelRegistryABI from "../contracts/ChannelRegistry.json";
+import { createReadContract, createWriteContract, type Provider, type Signer } from "../utils/contracts";
 
 interface UseChannelRegistryProps {
   registryAddress: string | null;
-  provider: ethers.BrowserProvider | null;
+  provider: Provider | null;
+  signer?: Signer | null;
+  enabled?: boolean;
 }
 
 interface UseChannelRegistryReturn {
@@ -32,21 +35,20 @@ interface UseChannelRegistryReturn {
 export function useChannelRegistry({
   registryAddress,
   provider,
+  signer,
+  enabled = true,
 }: UseChannelRegistryProps): UseChannelRegistryReturn {
   const [channels, setChannels] = useState<RegisteredChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const getReadContract = useCallback(() => {
-    if (!registryAddress || !provider) return null;
-    return new ethers.Contract(registryAddress, ChannelRegistryABI.abi, provider);
+    return createReadContract(registryAddress, ChannelRegistryABI.abi, provider);
   }, [registryAddress, provider]);
 
   const getWriteContract = useCallback(async () => {
-    if (!registryAddress || !provider) return null;
-    const signer = await provider.getSigner();
-    return new ethers.Contract(registryAddress, ChannelRegistryABI.abi, signer);
-  }, [registryAddress, provider]);
+    return createWriteContract(registryAddress, ChannelRegistryABI.abi, provider, signer ?? null);
+  }, [registryAddress, provider, signer]);
 
   const loadChannels = useCallback(async () => {
     const contract = getReadContract();
@@ -75,16 +77,16 @@ export function useChannelRegistry({
   }, [getReadContract]);
 
   useEffect(() => {
-    if (registryAddress && provider) {
+    if (enabled && registryAddress && provider) {
       loadChannels();
     } else {
       setChannels([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registryAddress, provider]);
+  }, [enabled, registryAddress, provider, loadChannels]);
 
   const createChannel = useCallback(
     async (name: string, description: string, postingMode: PostingMode) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -110,11 +112,12 @@ export function useChannelRegistry({
 
       throw new Error("Failed to parse channel creation event");
     },
-    [getWriteContract, loadChannels]
+    [enabled, getWriteContract, loadChannels]
   );
 
   const registerChannel = useCallback(
     async (channelAddress: string): Promise<bigint> => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -137,7 +140,7 @@ export function useChannelRegistry({
 
       throw new Error("Failed to parse registration event");
     },
-    [getWriteContract, loadChannels]
+    [enabled, getWriteContract, loadChannels]
   );
 
   const getChannelCount = useCallback(async (): Promise<bigint> => {

@@ -22,7 +22,9 @@ export function getOrCreateStandaloneWallet(): ethers.Wallet {
     return new ethers.Wallet(stored.privateKey);
   }
 
-  const wallet = ethers.Wallet.createRandom();
+  // createRandom() returns HDNodeWallet, convert to Wallet using private key
+  const hdWallet = ethers.Wallet.createRandom();
+  const wallet = new ethers.Wallet(hdWallet.privateKey);
   saveStandaloneWallet(wallet);
   return wallet;
 }

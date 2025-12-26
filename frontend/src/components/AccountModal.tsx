@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { truncateAddress, formatBalance, getFuelEmoji } from '../utils/formatters';
 import type { Profile } from '../types/contracts';
 import type { WalletMode } from '../hooks/useAppWallet';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -34,12 +35,6 @@ interface AccountModalProps {
   onConnectBrowserWallet?: () => void;
 }
 
-const SUGGESTED_AMOUNTS = [
-  { label: '0.01 PAS', value: ethers.parseEther('0.01') },
-  { label: '0.05 PAS', value: ethers.parseEther('0.05') },
-  { label: '0.1 PAS', value: ethers.parseEther('0.1') },
-];
-
 export function AccountModal({
   isOpen,
   onClose,
@@ -61,6 +56,7 @@ export function AccountModal({
   onConnectBrowserWallet,
 }: AccountModalProps) {
   const isStandaloneMode = walletMode === 'standalone';
+  const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,14 +157,14 @@ export function AccountModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-2xl mx-4 border-2 border-orange-500 bg-black max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-black border-b-2 border-orange-500 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-orange-500 text-shadow-neon font-mono">
+      <div className="relative z-10 w-full max-w-2xl mx-4 border-2 border-primary-500 bg-black max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-black border-b-2 border-primary-500 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono">
             ▄▄▄ ACCOUNT ▄▄▄
           </h2>
           <button
             onClick={onClose}
-            className="text-orange-500 hover:text-orange-400 text-2xl font-mono"
+            className="text-primary-500 hover:text-primary-400 text-2xl font-mono"
           >
             ×
           </button>
@@ -177,22 +173,22 @@ export function AccountModal({
         <div className="p-6 space-y-6">
           {/* WALLET SECTION */}
           <div>
-            <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">
+            <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
               {isStandaloneMode ? 'IN-APP WALLET' : 'BROWSER WALLET'}
             </h3>
-            <div className="border border-orange-700 p-4">
+            <div className="border border-primary-700 p-4">
               {walletAddress ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between font-mono text-sm">
-                    <span className="text-orange-400">
+                    <span className="text-primary-400">
                       {isStandaloneMode ? '🔐 In-App:' : '● Connected:'}
                     </span>
-                    <span className="text-cyan-400">{truncateAddress(walletAddress)}</span>
+                    <span className="text-accent-400">{truncateAddress(walletAddress)}</span>
                   </div>
                   {isStandaloneMode && (
                     <div className="flex items-center justify-between font-mono text-sm">
-                      <span className="text-orange-400">Balance:</span>
-                      <span className="text-cyan-400">
+                      <span className="text-primary-400">Balance:</span>
+                      <span className="text-accent-400">
                         {formatBalance(appWalletBalance)} PAS {getFuelEmoji(appWalletBalance)}
                       </span>
                     </div>
@@ -208,7 +204,7 @@ export function AccountModal({
                   {isStandaloneMode && onConnectBrowserWallet && (
                     <button
                       onClick={onConnectBrowserWallet}
-                      className="w-full py-2 border border-cyan-600 text-cyan-400 font-mono text-sm hover:border-cyan-500"
+                      className="w-full py-2 border border-accent-600 text-accent-400 font-mono text-sm hover:border-accent-500"
                     >
                       CONNECT BROWSER WALLET
                     </button>
@@ -224,7 +220,7 @@ export function AccountModal({
                 <button
                   onClick={onConnect}
                   disabled={isConnecting}
-                  className="w-full py-2 bg-orange-900 hover:bg-orange-800 text-orange-400 border-2 border-orange-500 font-mono text-sm disabled:opacity-50"
+                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-50"
                 >
                   {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
                 </button>
@@ -235,10 +231,10 @@ export function AccountModal({
           {/* PROFILE SECTION */}
           {walletAddress && (
             <div>
-              <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">PROFILE</h3>
-              <form onSubmit={handleProfileSubmit} className="border border-orange-700 p-4 space-y-4">
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">PROFILE</h3>
+              <form onSubmit={handleProfileSubmit} className="border border-primary-700 p-4 space-y-4">
                 <div>
-                  <label className="block text-orange-400 font-mono text-sm mb-1">
+                  <label className="block text-primary-400 font-mono text-sm mb-1">
                     DISPLAY NAME *
                   </label>
                   <input
@@ -247,16 +243,16 @@ export function AccountModal({
                     onChange={(e) => setDisplayName(e.target.value)}
                     maxLength={50}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700"
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700"
                     placeholder="Enter your display name"
                   />
-                  <span className="text-xs text-orange-600 font-mono">
+                  <span className="text-xs text-primary-600 font-mono">
                     {displayName.length}/50 chars
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-orange-400 font-mono text-sm mb-1">
+                  <label className="block text-primary-400 font-mono text-sm mb-1">
                     BIO
                   </label>
                   <textarea
@@ -265,10 +261,10 @@ export function AccountModal({
                     maxLength={500}
                     rows={3}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 resize-none"
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 resize-none"
                     placeholder="Tell us about yourself (optional)"
                   />
-                  <span className="text-xs text-orange-600 font-mono">
+                  <span className="text-xs text-primary-600 font-mono">
                     {bio.length}/500 chars
                   </span>
                 </div>
@@ -276,7 +272,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || !displayName.trim()}
-                  className="w-full py-2 bg-orange-900 hover:bg-orange-800 text-orange-400 border-2 border-orange-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
                 >
                   {isSubmitting ? 'SAVING...' : profile?.exists ? 'UPDATE PROFILE' : 'CREATE PROFILE'}
                 </button>
@@ -284,59 +280,88 @@ export function AccountModal({
             </div>
           )}
 
+          {/* THEME SECTION */}
+          {walletAddress && (
+            <div>
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">THEME</h3>
+              <div className="border border-primary-700 p-4">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTheme('neon')}
+                    className={`flex-1 py-3 px-4 border-2 font-mono text-sm transition-all ${
+                      theme === 'neon'
+                        ? 'bg-primary-900 border-primary-500 text-primary-400'
+                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-600'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <div className="font-bold">NEON</div>
+                      <div className="text-xs opacity-75">Orange glow effects</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setTheme('grayscale')}
+                    className={`flex-1 py-3 px-4 border-2 font-mono text-sm transition-all ${
+                      theme === 'grayscale'
+                        ? 'bg-primary-900 border-primary-500 text-primary-400'
+                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-600'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <div className="font-bold">GRAYSCALE</div>
+                      <div className="text-xs opacity-75">Clean minimal look</div>
+                    </div>
+                  </button>
+                </div>
+                <p className="text-xs text-primary-600 font-mono mt-3">
+                  {theme === 'neon'
+                    ? '🔆 Vibrant orange/cyan with neon glow effects'
+                    : '⚪ Grayscale with subtle blue accents, no glows'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* IN-APP WALLET SECTION (browser wallet mode only) */}
           {!isStandaloneMode && walletAddress && profile?.exists && (
             <div>
-              <h3 className="text-sm font-bold text-cyan-400 font-mono mb-3">
-                IN-APP WALLET <span className="text-orange-600 text-xs">(gasless messaging)</span>
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+                IN-APP WALLET <span className="text-primary-600 text-xs">(gasless messaging)</span>
               </h3>
 
               {!isAuthorized ? (
-                <div className="border border-orange-700 p-4 space-y-3">
-                  <div className="font-mono text-sm text-orange-400">
+                <div className="border border-primary-700 p-4 space-y-3">
+                  <div className="font-mono text-sm text-primary-400">
                     Status: <span className="text-yellow-500">Not Set Up</span>
                   </div>
-                  <p className="text-xs text-orange-600 font-mono">
+                  <p className="text-xs text-primary-600 font-mono">
                     Set up an in-app wallet to post messages without MetaMask popups. This creates a session wallet that can post on your behalf.
                   </p>
                   <button
                     onClick={handleSetupAppWallet}
                     disabled={isSettingUp}
-                    className="w-full py-2 bg-cyan-900 hover:bg-cyan-800 text-cyan-400 border-2 border-cyan-500 font-mono text-sm disabled:opacity-50"
+                    className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-50"
                   >
                     {isSettingUp ? 'SETTING UP...' : 'SETUP IN-APP WALLET'}
                   </button>
                 </div>
               ) : (
-                <div className="border border-orange-700 p-4 space-y-4">
+                <div className="border border-primary-700 p-4 space-y-4">
                   <div className="font-mono text-sm space-y-2">
-                    <div className="flex justify-between text-orange-400">
+                    <div className="flex justify-between text-primary-400">
                       <span>Address:</span>
-                      <span className="text-cyan-400">{truncateAddress(appWalletAddress!)}</span>
+                      <span className="text-accent-400">{truncateAddress(appWalletAddress!)}</span>
                     </div>
-                    <div className="flex justify-between text-orange-400">
+                    <div className="flex justify-between text-primary-400">
                       <span>Balance:</span>
-                      <span className="text-cyan-400">
+                      <span className="text-accent-400">
                         {formatBalance(appWalletBalance)} PAS {getFuelEmoji(appWalletBalance)}
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-xs text-orange-600 font-mono mb-2">Top up balance:</p>
-                    <div className="flex gap-2 mb-3">
-                      {SUGGESTED_AMOUNTS.map((amt) => (
-                        <button
-                          key={amt.label}
-                          onClick={() => handleTopUp(amt.value)}
-                          disabled={isFunding}
-                          className="flex-1 py-2 bg-cyan-900 hover:bg-cyan-800 text-cyan-400 border border-cyan-500 font-mono text-xs disabled:opacity-50"
-                        >
-                          {amt.label}
-                        </button>
-                      ))}
-                    </div>
-
+                    <p className="text-xs text-primary-600 font-mono mb-2">Top up balance:</p>
                     <div className="flex gap-2">
                       <div className="flex-1 relative">
                         <input
@@ -345,16 +370,16 @@ export function AccountModal({
                           onChange={(e) => setCustomAmount(e.target.value)}
                           placeholder="10"
                           disabled={isFunding}
-                          className="w-full px-3 py-2 pr-12 bg-black border border-orange-500 text-orange-400 font-mono text-sm focus:outline-none text-right"
+                          className="w-full px-3 py-2 pr-12 bg-black border border-primary-500 text-primary-400 font-mono text-sm focus:outline-none text-right"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-600 font-mono text-sm pointer-events-none">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 font-mono text-sm pointer-events-none">
                           PAS
                         </span>
                       </div>
                       <button
                         onClick={handleCustomTopUp}
                         disabled={isFunding || !customAmount}
-                        className="px-4 py-2 bg-orange-900 hover:bg-orange-800 text-orange-400 border border-orange-500 font-mono text-sm disabled:opacity-50"
+                        className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border border-primary-500 font-mono text-sm disabled:opacity-50"
                       >
                         SEND
                       </button>

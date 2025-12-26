@@ -11,7 +11,7 @@ export function ConnectWallet({ address, isConnecting, onConnect }: ConnectWalle
     <button
       onClick={onConnect}
       disabled={isConnecting || !!address}
-      className="bg-orange-900 hover:bg-orange-800 disabled:bg-gray-800 disabled:text-gray-600 text-orange-400 font-mono text-sm py-2 px-6 border-2 border-orange-500 hover:border-orange-400 disabled:border-gray-700 transition-all duration-200 border-shadow-neon disabled:shadow-none"
+      className="bg-primary-900 hover:bg-primary-800 disabled:bg-gray-800 disabled:text-gray-600 text-primary-400 font-mono text-sm py-2 px-6 border-2 border-primary-500 hover:border-primary-400 disabled:border-gray-700 transition-all duration-200 border-shadow-neon disabled:shadow-none"
     >
       {isConnecting ? (
         <span className="flex items-center gap-2">
@@ -20,7 +20,7 @@ export function ConnectWallet({ address, isConnecting, onConnect }: ConnectWalle
         </span>
       ) : address ? (
         <span className="flex items-center gap-2">
-          <span className="text-cyan-400">●</span>
+          <span className="text-accent-400">●</span>
           {truncateAddress(address)}
         </span>
       ) : (

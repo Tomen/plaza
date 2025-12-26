@@ -53,26 +53,26 @@ export function InAppWalletSetup({
       <div className="absolute inset-0 bg-black bg-opacity-90" />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-orange-500 bg-black p-6">
-        <h2 className="text-xl font-bold text-orange-500 text-shadow-neon mb-2 font-mono text-center">
+      <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-primary-500 bg-black p-6">
+        <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-2 font-mono text-center">
           ▄▄▄ IN-APP WALLET SETUP ▄▄▄
         </h2>
-        <p className="text-orange-600 font-mono text-sm text-center mb-6">
+        <p className="text-primary-600 font-mono text-sm text-center mb-6">
           Your wallet has been created!
         </p>
 
         {/* Wallet Address */}
         <div className="mb-4">
-          <label className="block text-orange-400 font-mono text-xs mb-2">
+          <label className="block text-primary-400 font-mono text-xs mb-2">
             YOUR WALLET ADDRESS
           </label>
           <div className="flex items-center gap-2">
-            <div className="flex-1 px-3 py-2 bg-black border-2 border-orange-500 text-cyan-400 font-mono text-sm break-all">
+            <div className="flex-1 px-3 py-2 bg-black border-2 border-primary-500 text-accent-400 font-mono text-sm break-all">
               {walletAddress}
             </div>
             <button
               onClick={handleCopyAddress}
-              className="px-3 py-2 border-2 border-orange-500 text-orange-400 font-mono text-sm hover:bg-orange-950"
+              className="px-3 py-2 border-2 border-primary-500 text-primary-400 font-mono text-sm hover:bg-primary-950"
             >
               {copied ? '✓' : 'COPY'}
             </button>
@@ -81,7 +81,7 @@ export function InAppWalletSetup({
 
         {/* Balance */}
         <div className="mb-4">
-          <label className="block text-orange-400 font-mono text-xs mb-2">
+          <label className="block text-primary-400 font-mono text-xs mb-2">
             BALANCE
           </label>
           <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export function InAppWalletSetup({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="px-3 py-2 border-2 border-orange-500 text-orange-400 font-mono text-sm hover:bg-orange-950 disabled:opacity-50"
+              className="px-3 py-2 border-2 border-primary-500 text-primary-400 font-mono text-sm hover:bg-primary-950 disabled:opacity-50"
             >
               {isRefreshing ? '...' : 'REFRESH'}
             </button>
@@ -102,18 +102,18 @@ export function InAppWalletSetup({
 
         {/* Faucet Instructions */}
         {!hasBalance && (
-          <div className="mb-6 p-4 border-2 border-cyan-500 bg-cyan-950 bg-opacity-20">
-            <h3 className="text-cyan-400 font-mono font-bold text-sm mb-2">
+          <div className="mb-6 p-4 border-2 border-accent-500 bg-accent-950 bg-opacity-20">
+            <h3 className="text-accent-400 font-mono font-bold text-sm mb-2">
               STEP 1: GET TEST TOKENS
             </h3>
-            <ol className="text-cyan-600 font-mono text-xs space-y-2">
+            <ol className="text-accent-600 font-mono text-xs space-y-2">
               <li>1. Copy your wallet address above</li>
               <li>2. Visit the Polkadot Asset Hub faucet:
                 <a
                   href="https://faucet.polkadot.io/?parachain=1111"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-cyan-400 hover:underline ml-1"
+                  className="text-accent-400 hover:underline ml-1"
                 >
                   faucet.polkadot.io
                 </a>

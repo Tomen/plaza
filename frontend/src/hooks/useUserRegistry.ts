@@ -2,11 +2,14 @@ import { useState, useCallback, useEffect } from "react";
 import { ethers } from "ethers";
 import type { Profile, Link } from "../types/contracts";
 import UserRegistryABI from "../contracts/UserRegistry.json";
+import { createReadContract, createWriteContract, type Provider, type Signer } from "../utils/contracts";
 
 interface UseUserRegistryProps {
   registryAddress: string | null;
-  provider: ethers.BrowserProvider | null;
+  provider: Provider | null;
   userAddress: string | null;
+  signer?: Signer | null;
+  enabled?: boolean;
 }
 
 interface UseUserRegistryReturn {
@@ -46,6 +49,8 @@ export function useUserRegistry({
   registryAddress,
   provider,
   userAddress,
+  signer,
+  enabled = true,
 }: UseUserRegistryProps): UseUserRegistryReturn {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
@@ -53,15 +58,12 @@ export function useUserRegistry({
   const [error, setError] = useState<string | null>(null);
 
   const getReadContract = useCallback(() => {
-    if (!registryAddress || !provider) return null;
-    return new ethers.Contract(registryAddress, UserRegistryABI.abi, provider);
+    return createReadContract(registryAddress, UserRegistryABI.abi, provider);
   }, [registryAddress, provider]);
 
   const getWriteContract = useCallback(async () => {
-    if (!registryAddress || !provider) return null;
-    const signer = await provider.getSigner();
-    return new ethers.Contract(registryAddress, UserRegistryABI.abi, signer);
-  }, [registryAddress, provider]);
+    return createWriteContract(registryAddress, UserRegistryABI.abi, provider, signer ?? null);
+  }, [registryAddress, provider, signer]);
 
   const loadProfile = useCallback(async () => {
     if (!userAddress) {
@@ -104,12 +106,14 @@ export function useUserRegistry({
   }, [userAddress, getReadContract]);
 
   useEffect(() => {
-    loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userAddress, registryAddress, provider]);
+    if (enabled) {
+      loadProfile();
+    }
+  }, [enabled, userAddress, registryAddress, provider, loadProfile]);
 
   const createProfile = useCallback(
     async (displayName: string, bio: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -117,20 +121,22 @@ export function useUserRegistry({
       await tx.wait();
       await loadProfile();
     },
-    [getWriteContract, loadProfile]
+    [enabled, getWriteContract, loadProfile]
   );
 
   const createDefaultProfile = useCallback(async () => {
+    if (!enabled) throw new Error("Wallet not ready");
     const contract = await getWriteContract();
     if (!contract) throw new Error("Contract not available");
 
     const tx = await contract.createDefaultProfile();
     await tx.wait();
     await loadProfile();
-  }, [getWriteContract, loadProfile]);
+  }, [enabled, getWriteContract, loadProfile]);
 
   const transferProfileOwnership = useCallback(
     async (newOwner: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -140,11 +146,12 @@ export function useUserRegistry({
       setProfile(null);
       setLinks([]);
     },
-    [getWriteContract]
+    [enabled, getWriteContract]
   );
 
   const updateDisplayName = useCallback(
     async (displayName: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -152,11 +159,12 @@ export function useUserRegistry({
       await tx.wait();
       await loadProfile();
     },
-    [getWriteContract, loadProfile]
+    [enabled, getWriteContract, loadProfile]
   );
 
   const updateBio = useCallback(
     async (bio: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -164,11 +172,12 @@ export function useUserRegistry({
       await tx.wait();
       await loadProfile();
     },
-    [getWriteContract, loadProfile]
+    [enabled, getWriteContract, loadProfile]
   );
 
   const addLink = useCallback(
     async (name: string, url: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -176,11 +185,12 @@ export function useUserRegistry({
       await tx.wait();
       await loadProfile();
     },
-    [getWriteContract, loadProfile]
+    [enabled, getWriteContract, loadProfile]
   );
 
   const removeLink = useCallback(
     async (index: number) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
@@ -188,38 +198,41 @@ export function useUserRegistry({
       await tx.wait();
       await loadProfile();
     },
-    [getWriteContract, loadProfile]
+    [enabled, getWriteContract, loadProfile]
   );
 
   const clearLinks = useCallback(async () => {
+    if (!enabled) throw new Error("Wallet not ready");
     const contract = await getWriteContract();
     if (!contract) throw new Error("Contract not available");
 
     const tx = await contract.clearLinks();
     await tx.wait();
     await loadProfile();
-  }, [getWriteContract, loadProfile]);
+  }, [enabled, getWriteContract, loadProfile]);
 
   const addDelegate = useCallback(
     async (delegateAddress: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
       const tx = await contract.addDelegate(delegateAddress);
       await tx.wait();
     },
-    [getWriteContract]
+    [enabled, getWriteContract]
   );
 
   const removeDelegate = useCallback(
     async (delegateAddress: string) => {
+      if (!enabled) throw new Error("Wallet not ready");
       const contract = await getWriteContract();
       if (!contract) throw new Error("Contract not available");
 
       const tx = await contract.removeDelegate(delegateAddress);
       await tx.wait();
     },
-    [getWriteContract]
+    [enabled, getWriteContract]
   );
 
   const isDelegate = useCallback(

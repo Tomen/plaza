@@ -1,5 +1,7 @@
 # On-Chain Chat
 
+**🌐 Live Demo:** https://tomen.github.io/plaza-gossip/
+
 A decentralized chat application with user profiles, multiple channels, and gasless messaging via delegated wallets. Built for Polkadot Asset Hub.
 
 ## Quick Start

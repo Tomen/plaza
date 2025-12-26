@@ -17,12 +17,12 @@ export function SessionBalance({ address, balance, isAuthorized, onTopUp }: Sess
   return (
     <div className="flex items-center gap-3 font-mono text-xs">
       <div className="flex items-center gap-2">
-        <span className="text-orange-600">[SESSION]</span>
-        <span className="text-orange-400">{truncateAddress(address)}</span>
+        <span className="text-primary-600">[SESSION]</span>
+        <span className="text-primary-400">{truncateAddress(address)}</span>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className={isLow ? 'text-red-500' : 'text-cyan-400'}>
+        <span className={isLow ? 'text-red-500' : 'text-accent-400'}>
           {formatBalance(balance)} PAS
         </span>
 

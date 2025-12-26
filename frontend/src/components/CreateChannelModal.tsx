@@ -50,18 +50,18 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4 border-2 border-orange-500 bg-black p-6">
-        <h2 className="text-xl font-bold text-orange-500 text-shadow-neon mb-4 font-mono">
+      <div className="relative z-10 w-full max-w-md mx-4 border-2 border-primary-500 bg-black p-6">
+        <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-4 font-mono">
           ▄▄▄ CREATE CHANNEL ▄▄▄
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-orange-400 font-mono text-sm mb-1">
+            <label className="block text-primary-400 font-mono text-sm mb-1">
               CHANNEL NAME *
             </label>
             <div className="flex">
-              <span className="px-3 py-2 bg-orange-950 border-2 border-r-0 border-orange-500 text-cyan-400 font-mono">
+              <span className="px-3 py-2 bg-primary-950 border-2 border-r-0 border-primary-500 text-accent-400 font-mono">
                 #
               </span>
               <input
@@ -70,14 +70,14 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
                 disabled={isSubmitting}
-                className="flex-1 px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 disabled:text-gray-600"
+                className="flex-1 px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600"
                 placeholder="general"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-orange-400 font-mono text-sm mb-1">
+            <label className="block text-primary-400 font-mono text-sm mb-1">
               DESCRIPTION
             </label>
             <textarea
@@ -86,13 +86,13 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
               maxLength={500}
               rows={2}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 disabled:text-gray-600 resize-none"
+              className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 resize-none"
               placeholder="What's this channel about?"
             />
           </div>
 
           <div>
-            <label className="block text-orange-400 font-mono text-sm mb-2">
+            <label className="block text-primary-400 font-mono text-sm mb-2">
               POSTING MODE
             </label>
             <div className="flex gap-4">
@@ -103,9 +103,9 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
                   checked={postingMode === PostingMode.Open}
                   onChange={() => setPostingMode(PostingMode.Open)}
                   disabled={isSubmitting}
-                  className="accent-orange-500"
+                  className="accent-primary-500"
                 />
-                <span className="text-orange-400 font-mono text-sm">OPEN</span>
+                <span className="text-primary-400 font-mono text-sm">OPEN</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -114,12 +114,12 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
                   checked={postingMode === PostingMode.Permissioned}
                   onChange={() => setPostingMode(PostingMode.Permissioned)}
                   disabled={isSubmitting}
-                  className="accent-orange-500"
+                  className="accent-primary-500"
                 />
-                <span className="text-orange-400 font-mono text-sm">PRIVATE</span>
+                <span className="text-primary-400 font-mono text-sm">PRIVATE</span>
               </label>
             </div>
-            <p className="text-xs text-orange-600 font-mono mt-1">
+            <p className="text-xs text-primary-600 font-mono mt-1">
               {postingMode === PostingMode.Open
                 ? 'Anyone with a profile can post'
                 : 'Only approved users can post'}
@@ -138,7 +138,7 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex-1 py-2 bg-orange-900 hover:bg-orange-800 text-orange-400 border-2 border-orange-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+              className="flex-1 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
             >
               {isSubmitting ? 'CREATING...' : 'CREATE'}
             </button>

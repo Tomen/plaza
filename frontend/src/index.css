@@ -1,19 +1,84 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Theme CSS Variables */
+:root {
+  /* Primary - Orange theme */
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #ff8800;
+  --color-primary-600: #ea580c;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+  --color-primary-950: #431407;
+
+  /* Accent - Cyan theme */
+  --color-accent-400: #00ffff;
+  --color-accent-500: #06b6d4;
+  --color-accent-600: #0891b2;
+  --color-accent-700: #0e7490;
+  --color-accent-800: #155e75;
+  --color-accent-900: #164e63;
+  --color-accent-950: #083344;
+
+  /* Backgrounds & Semantic */
+  --color-bg-base: #000000;
+  --color-bg-primary: #1a0f00;
+  --color-bg-accent: #001a1a;
+  --color-error: #ff0055;
+  --color-warning: #eab308;
+  --color-success: #22c55e;
+
+  /* Glow effects control */
+  --enable-glow: 1;
+}
+
+[data-theme="grayscale"] {
+  /* Primary - Grayscale */
+  --color-primary-300: #d1d5db;
+  --color-primary-400: #9ca3af;
+  --color-primary-500: #6b7280;
+  --color-primary-600: #4b5563;
+  --color-primary-700: #374151;
+  --color-primary-800: #1f2937;
+  --color-primary-900: #111827;
+  --color-primary-950: #030712;
+
+  /* Accent - Muted Blue */
+  --color-accent-400: #5b9fc7;
+  --color-accent-500: #4a8caf;
+  --color-accent-600: #3a7a99;
+  --color-accent-700: #2b5d75;
+  --color-accent-800: #1e4258;
+  --color-accent-900: #183649;
+  --color-accent-950: #0c1e2b;
+
+  /* Backgrounds & Semantic */
+  --color-bg-base: #000000;
+  --color-bg-primary: #0a0a0a;
+  --color-bg-accent: #0f1419;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-success: #16a34a;
+
+  /* Disable glow effects */
+  --enable-glow: 0;
+}
+
 @layer base {
   body {
     margin: 0;
     font-family: 'IBM Plex Mono', 'Courier New', monospace;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #000000;
-    color: #ff8800;
+    background: var(--color-bg-base);
+    color: var(--color-primary-500);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #ff8800 #1a0f00;
+    scrollbar-color: var(--color-primary-500) var(--color-bg-primary);
   }
 
   *::-webkit-scrollbar {
@@ -22,30 +87,76 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: #1a0f00;
+    background: var(--color-bg-primary);
   }
 
   *::-webkit-scrollbar-thumb {
-    background: #ff8800;
+    background: var(--color-primary-500);
     border-radius: 0;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: #ffaa00;
+    background: var(--color-primary-400);
   }
 }
 
 @layer utilities {
+  /* Primary color utilities */
+  .text-primary-300 { color: var(--color-primary-300); }
+  .text-primary-400 { color: var(--color-primary-400); }
+  .text-primary-500 { color: var(--color-primary-500); }
+  .text-primary-600 { color: var(--color-primary-600); }
+  .text-primary-700 { color: var(--color-primary-700); }
+  .text-primary-800 { color: var(--color-primary-800); }
+  .text-primary-900 { color: var(--color-primary-900); }
+  .text-primary-950 { color: var(--color-primary-950); }
+
+  .bg-primary-800 { background-color: var(--color-primary-800); }
+  .bg-primary-900 { background-color: var(--color-primary-900); }
+  .bg-primary-950 { background-color: var(--color-primary-950); }
+
+  .border-primary-400 { border-color: var(--color-primary-400); }
+  .border-primary-500 { border-color: var(--color-primary-500); }
+  .border-primary-700 { border-color: var(--color-primary-700); }
+
+  .hover\:border-primary-400:hover { border-color: var(--color-primary-400); }
+  .hover\:border-primary-500:hover { border-color: var(--color-primary-500); }
+  .hover\:bg-primary-800:hover { background-color: var(--color-primary-800); }
+
+  /* Accent color utilities */
+  .text-accent-400 { color: var(--color-accent-400); }
+  .text-accent-500 { color: var(--color-accent-500); }
+  .text-accent-600 { color: var(--color-accent-600); }
+
+  .bg-accent-800 { background-color: var(--color-accent-800); }
+  .bg-accent-900 { background-color: var(--color-accent-900); }
+  .bg-accent-950 { background-color: var(--color-accent-950); }
+
+  .border-accent-400 { border-color: var(--color-accent-400); }
+  .border-accent-500 { border-color: var(--color-accent-500); }
+  .border-accent-600 { border-color: var(--color-accent-600); }
+  .border-accent-700 { border-color: var(--color-accent-700); }
+
+  .hover\:border-accent-500:hover { border-color: var(--color-accent-500); }
+  .hover\:bg-accent-800:hover { background-color: var(--color-accent-800); }
+
+  /* Glow effects - conditional based on theme */
   .text-shadow-neon {
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+    text-shadow:
+      calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(10px * var(--enable-glow)) currentColor,
+      calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(20px * var(--enable-glow)) currentColor;
   }
 
   .text-shadow-neon-sm {
-    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+    text-shadow:
+      calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(5px * var(--enable-glow)) currentColor,
+      calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(10px * var(--enable-glow)) currentColor;
   }
 
   .border-shadow-neon {
-    box-shadow: 0 0 10px currentColor, inset 0 0 10px rgba(0, 255, 0, 0.1);
+    box-shadow:
+      calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(10px * var(--enable-glow)) currentColor,
+      inset calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(10px * var(--enable-glow)) rgba(0, 255, 0, calc(0.1 * var(--enable-glow)));
   }
 
   .crt-flicker {

@@ -70,19 +70,19 @@ export function PrivateKeyExportModal({
             onChange={(e) => setConfirmed(e.target.checked)}
             className="w-4 h-4 accent-red-500"
           />
-          <span className="font-mono text-sm text-orange-400">
+          <span className="font-mono text-sm text-primary-400">
             I understand the risks and want to reveal my private key
           </span>
         </label>
 
         {/* Private Key Display */}
         <div className="mb-4">
-          <label className="block text-orange-400 font-mono text-xs mb-2">
+          <label className="block text-primary-400 font-mono text-xs mb-2">
             PRIVATE KEY
           </label>
           <div className="relative">
             <div
-              className={`px-3 py-3 bg-black border-2 border-orange-500 font-mono text-sm break-all ${
+              className={`px-3 py-3 bg-black border-2 border-primary-500 font-mono text-sm break-all ${
                 isRevealed ? 'text-yellow-400' : 'text-gray-600'
               }`}
             >

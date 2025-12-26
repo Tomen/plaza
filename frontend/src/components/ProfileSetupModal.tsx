@@ -55,14 +55,14 @@ export function ProfileSetupModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4 border-2 border-orange-500 bg-black p-6">
-        <h2 className="text-xl font-bold text-orange-500 text-shadow-neon mb-4 font-mono">
+      <div className="relative z-10 w-full max-w-md mx-4 border-2 border-primary-500 bg-black p-6">
+        <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-4 font-mono">
           {isEdit ? '▄▄▄ EDIT PROFILE ▄▄▄' : '▄▄▄ CREATE PROFILE ▄▄▄'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-orange-400 font-mono text-sm mb-1">
+            <label className="block text-primary-400 font-mono text-sm mb-1">
               DISPLAY NAME *
             </label>
             <input
@@ -71,16 +71,16 @@ export function ProfileSetupModal({
               onChange={(e) => setDisplayName(e.target.value)}
               maxLength={50}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 disabled:text-gray-600"
+              className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600"
               placeholder="Enter your display name"
             />
-            <span className="text-xs text-orange-600 font-mono">
+            <span className="text-xs text-primary-600 font-mono">
               {displayName.length}/50 chars
             </span>
           </div>
 
           <div>
-            <label className="block text-orange-400 font-mono text-sm mb-1">
+            <label className="block text-primary-400 font-mono text-sm mb-1">
               BIO
             </label>
             <textarea
@@ -89,10 +89,10 @@ export function ProfileSetupModal({
               maxLength={500}
               rows={3}
               disabled={isSubmitting}
-              className="w-full px-3 py-2 bg-black border-2 border-orange-500 text-orange-400 font-mono text-sm focus:outline-none focus:border-orange-400 disabled:border-gray-700 disabled:text-gray-600 resize-none"
+              className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 resize-none"
               placeholder="Tell us about yourself (optional)"
             />
-            <span className="text-xs text-orange-600 font-mono">
+            <span className="text-xs text-primary-600 font-mono">
               {bio.length}/500 chars
             </span>
           </div>
@@ -109,7 +109,7 @@ export function ProfileSetupModal({
             <button
               type="submit"
               disabled={isSubmitting || !displayName.trim()}
-              className="flex-1 py-2 bg-orange-900 hover:bg-orange-800 text-orange-400 border-2 border-orange-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+              className="flex-1 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
             >
               {isSubmitting ? 'SAVING...' : isEdit ? 'UPDATE' : 'CREATE'}
             </button>

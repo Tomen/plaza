@@ -4,20 +4,19 @@ import {
   getOrCreateAppWallet,
   saveAppWallet,
   getStoredWalletInfo,
-  clearAppWallet,
   isWalletAuthorizedFor,
   getOrCreateStandaloneWallet,
-  getStoredStandaloneWallet,
   clearStandaloneWallet,
   getPrivateKeyForExport,
   hasStandaloneWallet,
 } from "../utils/appWallet";
 
 export type WalletMode = 'browser' | 'standalone' | 'none';
+export type WalletState = 'idle' | 'initializing' | 'ready' | 'error';
 
 interface UseAppWalletProps {
   userAddress: string | null;
-  provider: ethers.BrowserProvider | null;
+  provider: ethers.BrowserProvider | ethers.JsonRpcProvider | null;
   checkDelegateOnChain?: (delegateAddress: string) => Promise<boolean>;
   mode?: WalletMode;
 }
@@ -28,9 +27,12 @@ interface UseAppWalletReturn {
   appWalletAddress: string | null;
   balance: bigint;
   isAuthorized: boolean;
+  isCheckingAuth: boolean;
   isLoading: boolean;
   error: string | null;
   mode: WalletMode;
+  walletState: WalletState;
+  isReady: boolean;
 
   // Actions
   initializeWallet: () => void;
@@ -40,9 +42,10 @@ interface UseAppWalletReturn {
   disconnect: () => void;
 
   // Standalone mode actions
-  initializeStandaloneWallet: (provider: ethers.Provider) => ethers.Wallet;
+  initializeStandaloneWallet: (provider: ethers.Provider) => void;
   getPrivateKey: () => string | null;
   hasExistingStandaloneWallet: () => boolean;
+  deleteStandaloneWallet: () => void;
 }
 
 export function useAppWallet({
@@ -54,81 +57,109 @@ export function useAppWallet({
   const [appWallet, setAppWallet] = useState<ethers.Wallet | null>(null);
   const [balance, setBalance] = useState<bigint>(0n);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMode, setCurrentMode] = useState<WalletMode>(mode);
+  const [walletState, setWalletState] = useState<WalletState>('idle');
 
   // Update mode when prop changes
   useEffect(() => {
     setCurrentMode(mode);
   }, [mode]);
 
-  // Check authorization status
+  // Check authorization status on-chain
   const checkAuthorization = useCallback(async () => {
+    // Can't check if wallet or callback not available yet
     if (!appWallet || !userAddress || !checkDelegateOnChain) {
-      setIsAuthorized(false);
       return;
     }
 
+    setIsCheckingAuth(true);
     try {
       const authorized = await checkDelegateOnChain(appWallet.address);
       setIsAuthorized(authorized);
     } catch {
       setIsAuthorized(false);
+    } finally {
+      setIsCheckingAuth(false);
     }
   }, [appWallet, userAddress, checkDelegateOnChain]);
 
   // Refresh balance
   const refreshBalance = useCallback(async () => {
-    if (!appWallet || !provider) {
+    if (!appWallet) {
+      setBalance(0n);
+      return;
+    }
+
+    // Use the wallet's connected provider if available, otherwise fall back to prop
+    const balanceProvider = appWallet.provider ?? provider;
+    if (!balanceProvider) {
       setBalance(0n);
       return;
     }
 
     try {
-      const bal = await provider.getBalance(appWallet.address);
+      const bal = await balanceProvider.getBalance(appWallet.address);
       setBalance(bal);
     } catch {
       setBalance(0n);
     }
   }, [appWallet, provider]);
 
-  // Initialize wallet from storage or create new
+  // Initialize wallet from storage or create new (browser mode)
   const initializeWallet = useCallback(() => {
     if (!userAddress) return;
 
-    const stored = getStoredWalletInfo();
+    setWalletState('initializing');
+    setError(null);
 
-    // If we have a wallet for this user, use it
-    if (stored && isWalletAuthorizedFor(userAddress)) {
-      const wallet = new ethers.Wallet(stored.privateKey);
-      setAppWallet(wallet);
-    } else {
-      // Create a new wallet but don't save yet
-      const wallet = getOrCreateAppWallet(userAddress);
-      setAppWallet(wallet);
+    try {
+      const stored = getStoredWalletInfo();
+
+      // If we have a wallet for this user, load it
+      // Authorization will be verified on-chain by checkAuthorization()
+      if (stored && isWalletAuthorizedFor(userAddress)) {
+        const wallet = new ethers.Wallet(stored.privateKey);
+        setAppWallet(wallet);
+      } else {
+        // Create a new wallet but don't save yet
+        const wallet = getOrCreateAppWallet(userAddress);
+        setAppWallet(wallet);
+      }
+      setWalletState('ready');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
+      setWalletState('error');
     }
   }, [userAddress]);
 
-  // Load existing wallet on mount
+  // Load existing wallet on mount (browser mode only)
   useEffect(() => {
-    if (userAddress) {
-      initializeWallet();
-    } else {
-      setAppWallet(null);
-      setIsAuthorized(false);
-      setBalance(0n);
+    // Only handle browser mode here; standalone mode is initialized via initializeStandaloneWallet
+    if (mode === 'browser') {
+      if (userAddress) {
+        initializeWallet();
+      } else {
+        setAppWallet(null);
+        setIsAuthorized(false);
+        setBalance(0n);
+        setWalletState('idle');
+      }
     }
-  }, [userAddress, initializeWallet]);
+  }, [userAddress, initializeWallet, mode]);
 
-  // Check authorization and balance when wallet or provider changes
+  // Check authorization when wallet, provider, or check function changes
+  // This triggers when userRegistry becomes available (provides checkDelegateOnChain)
   useEffect(() => {
-    if (appWallet && provider) {
+    if (appWallet) {
       checkAuthorization();
-      refreshBalance();
+      if (provider) {
+        refreshBalance();
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appWallet, provider]);
+  }, [appWallet, provider, checkAuthorization, refreshBalance]);
 
   // Authorize the app wallet as a delegate
   const authorizeDelegate = useCallback(
@@ -186,28 +217,34 @@ export function useAppWallet({
     [appWallet, provider, refreshBalance]
   );
 
-  // Disconnect and clear
+  // Disconnect (clears session state but preserves wallets in localStorage)
+  // Both standalone and delegate wallets are preserved so user can reconnect
+  // The on-chain delegation still exists, so we shouldn't delete the wallet
   const disconnect = useCallback(() => {
-    if (currentMode === 'standalone') {
-      clearStandaloneWallet();
-    } else {
-      clearAppWallet();
-    }
     setAppWallet(null);
     setIsAuthorized(false);
     setBalance(0n);
     setError(null);
-  }, [currentMode]);
+    setWalletState('idle');
+  }, []);
 
   // Initialize standalone wallet (for in-app wallet mode)
-  const initializeStandaloneWallet = useCallback((walletProvider: ethers.Provider): ethers.Wallet => {
-    const wallet = getOrCreateStandaloneWallet();
-    const connectedWallet = wallet.connect(walletProvider);
-    setAppWallet(connectedWallet);
-    setCurrentMode('standalone');
-    // In standalone mode, wallet is always "authorized" (it is the primary identity)
-    setIsAuthorized(true);
-    return connectedWallet;
+  const initializeStandaloneWallet = useCallback((walletProvider: ethers.Provider): void => {
+    setWalletState('initializing');
+    setError(null);
+
+    try {
+      const wallet = getOrCreateStandaloneWallet();
+      const connectedWallet = wallet.connect(walletProvider);
+      setAppWallet(connectedWallet);
+      setCurrentMode('standalone');
+      // In standalone mode, wallet is always "authorized" (it is the primary identity)
+      setIsAuthorized(true);
+      setWalletState('ready');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
+      setWalletState('error');
+    }
   }, []);
 
   // Get private key for export (standalone mode)
@@ -220,14 +257,27 @@ export function useAppWallet({
     return hasStandaloneWallet();
   }, []);
 
+  // Permanently delete standalone wallet from localStorage
+  const deleteStandaloneWallet = useCallback(() => {
+    clearStandaloneWallet();
+    setAppWallet(null);
+    setIsAuthorized(false);
+    setBalance(0n);
+    setError(null);
+    setWalletState('idle');
+  }, []);
+
   return {
     appWallet,
     appWalletAddress: appWallet?.address ?? null,
     balance,
     isAuthorized,
+    isCheckingAuth,
     isLoading,
     error,
     mode: currentMode,
+    walletState,
+    isReady: walletState === 'ready',
     initializeWallet,
     authorizeDelegate,
     fundWallet,
@@ -236,5 +286,6 @@ export function useAppWallet({
     initializeStandaloneWallet,
     getPrivateKey,
     hasExistingStandaloneWallet,
+    deleteStandaloneWallet,
   };
 }

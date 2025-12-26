@@ -27,7 +27,7 @@ export function ChatFeed({ messages, isLoading, currentAddress }: ChatFeedProps)
   if (isLoading && !hasLoadedOnce) {
     return (
       <div className="flex-1 flex items-center justify-center bg-black p-8">
-        <div className="text-orange-500 font-mono text-center">
+        <div className="text-primary-500 font-mono text-center">
           <div className="text-2xl mb-4 terminal-cursor">...</div>
           <div className="text-sm text-shadow-neon-sm">LOADING MESSAGES...</div>
         </div>
@@ -39,10 +39,10 @@ export function ChatFeed({ messages, isLoading, currentAddress }: ChatFeedProps)
     return (
       <div className="flex-1 flex items-center justify-center bg-black p-8">
         <div className="text-center font-mono">
-          <div className="text-orange-500 text-lg mb-2 text-shadow-neon">
+          <div className="text-primary-500 text-lg mb-2 text-shadow-neon">
             [EMPTY CHAT ROOM]
           </div>
-          <div className="text-orange-700 text-sm">
+          <div className="text-primary-700 text-sm">
             &gt; Be the first to post a message_
           </div>
         </div>
@@ -61,21 +61,21 @@ export function ChatFeed({ messages, isLoading, currentAddress }: ChatFeedProps)
           <div key={index} className="flex justify-start">
             <div className="w-full max-w-4xl font-mono text-sm">
               {/* Single line message */}
-              <div className="flex items-baseline gap-4 text-orange-400">
+              <div className="flex items-baseline gap-4 text-primary-400">
                 {/* Timestamp */}
-                <span className="text-orange-600 text-xs flex-shrink-0">
+                <span className="text-primary-600 text-xs flex-shrink-0">
                   [ {formatTimestamp(msg.timestamp)} ]
                 </span>
 
                 {/* Username/Address */}
-                <span className={`${isCurrentUser ? 'text-cyan-400 font-semibold' : 'text-orange-500'} flex-shrink-0`}>
+                <span className={`${isCurrentUser ? 'text-accent-400 font-semibold' : 'text-primary-500'} flex-shrink-0`}>
                   {isCurrentUser ? 'YOU' : displayIdentifier}
-                  {isDelegate && <span className="text-orange-700 text-xs ml-1">(via delegate)</span>}
+                  {isDelegate && <span className="text-primary-700 text-xs ml-1">(via delegate)</span>}
                   {' :'}
                 </span>
 
                 {/* Message content */}
-                <span className="text-orange-300 break-words flex-1">
+                <span className="text-primary-300 break-words flex-1">
                   {msg.content}
                 </span>
               </div>
