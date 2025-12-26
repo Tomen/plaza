@@ -102,17 +102,17 @@ export function PrivateKeyExportModal({
             <>
               <button
                 onClick={handleClose}
-                className="flex-1 py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+                className="flex-1 py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
               >
                 CANCEL
               </button>
               <button
                 onClick={() => setIsRevealed(true)}
                 disabled={!confirmed}
-                className={`flex-1 py-2 font-mono text-sm border-2 ${
+                className={`flex-1 py-2 font-mono text-sm border-2 transition-all ${
                   confirmed
-                    ? 'bg-red-900 hover:bg-red-800 text-red-400 border-red-500'
-                    : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed'
+                    ? 'bg-red-900 hover:bg-red-800 text-red-400 border-red-500 hover:border-red-400'
+                    : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed opacity-70'
                 }`}
               >
                 REVEAL KEY
@@ -122,13 +122,13 @@ export function PrivateKeyExportModal({
             <>
               <button
                 onClick={handleCopy}
-                className="flex-1 py-2 bg-yellow-900 hover:bg-yellow-800 text-yellow-400 border-2 border-yellow-500 font-mono text-sm"
+                className="flex-1 py-2 bg-yellow-900 hover:bg-yellow-800 text-yellow-400 border-2 border-yellow-500 hover:border-yellow-400 font-mono text-sm transition-all"
               >
                 COPY TO CLIPBOARD
               </button>
               <button
                 onClick={handleClose}
-                className="flex-1 py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+                className="flex-1 py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
               >
                 DONE
               </button>

@@ -131,14 +131,14 @@ export function CreateChannelModal({ isOpen, onClose, onCreate }: CreateChannelM
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 disabled:opacity-50"
+              className="flex-1 py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               CANCEL
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex-1 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+              className="flex-1 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               {isSubmitting ? 'CREATING...' : 'CREATE'}
             </button>

@@ -1,0 +1,757 @@
+# Plaza Gossip UI Style Guide
+
+A comprehensive guide for styling UI components in the Plaza Gossip frontend.
+
+---
+
+## Table of Contents
+
+1. [Design Philosophy](#design-philosophy)
+2. [Color System](#color-system)
+3. [Typography](#typography)
+4. [Spacing](#spacing)
+5. [Borders & Shadows](#borders--shadows)
+6. [Layout Patterns](#layout-patterns)
+7. [Component Patterns](#component-patterns)
+8. [Interactive States](#interactive-states)
+9. [Animations & Effects](#animations--effects)
+10. [Theme System](#theme-system)
+11. [Best Practices](#best-practices)
+
+---
+
+## Design Philosophy
+
+Plaza Gossip uses a **terminal/retro-futuristic aesthetic** with these core principles:
+
+- **Monospace everywhere** - IBM Plex Mono for authentic terminal feel
+- **Sharp corners** - No rounded borders; maintains the terminal aesthetic
+- **Neon glow effects** - Text shadows and box shadows for sci-fi ambiance
+- **Binary theming** - Neon (orange/cyan) or Grayscale modes
+- **Clear visual hierarchy** - Size, color, and weight guide importance
+- **Consistent feedback** - Every interactive element has hover, disabled, and loading states
+
+---
+
+## Color System
+
+### CSS Variables (defined in `index.css`)
+
+All colors use CSS custom properties for easy theming:
+
+```css
+/* Primary - Orange */
+--color-primary-300: #fdba74;  /* Light */
+--color-primary-400: #fb923c;
+--color-primary-500: #ff8800;  /* Main */
+--color-primary-600: #ea580c;
+--color-primary-700: #c2410c;
+--color-primary-800: #9a3412;
+--color-primary-900: #7c2d12;
+--color-primary-950: #431407;  /* Darkest */
+
+/* Accent - Cyan */
+--color-accent-400: #00ffff;   /* Bright */
+--color-accent-500: #06b6d4;   /* Main */
+--color-accent-600: #0891b2;
+--color-accent-700: #0e7490;
+--color-accent-800: #155e75;
+--color-accent-900: #164e63;
+--color-accent-950: #083344;
+
+/* Backgrounds */
+--color-bg-base: #000000;
+--color-bg-primary: #1a0f00;   /* Orange-tinted */
+--color-bg-accent: #001a1a;    /* Cyan-tinted */
+
+/* Semantic */
+--color-error: #ff0055;
+--color-warning: #eab308;
+--color-success: #22c55e;
+```
+
+### Color Usage Guidelines
+
+| Purpose | Color Class | Example |
+|---------|-------------|---------|
+| Primary text | `text-primary-400` | Body text |
+| Headings | `text-primary-500` | Titles with glow |
+| Muted text | `text-primary-600` or `700` | Timestamps, metadata |
+| Accent/highlight | `text-accent-400` | Current user, links |
+| Error | `text-red-500` | Error messages |
+| Warning | `text-yellow-400` | Warnings, private badges |
+| Success | `text-green-500` | Confirmations |
+
+### Semantic Color Patterns
+
+```tsx
+// Error state
+<div className="border-red-500 bg-red-900 bg-opacity-20 text-red-400">
+
+// Warning state
+<div className="border-yellow-600 bg-yellow-900 bg-opacity-30 text-yellow-400">
+
+// Success state
+<div className="border-green-500 bg-green-900 bg-opacity-20 text-green-400">
+
+// Info state
+<div className="border-accent-500 bg-accent-950 bg-opacity-20 text-accent-400">
+```
+
+---
+
+## Typography
+
+### Font Family
+
+```css
+font-family: 'IBM Plex Mono', 'Courier New', monospace;
+```
+
+Always use `font-mono` class on text elements.
+
+### Size Hierarchy
+
+| Level | Class | Use Case |
+|-------|-------|----------|
+| Title | `text-xl font-bold` | Main headings |
+| Section | `text-lg font-bold` | Subsection headers |
+| Body | `text-sm` | Standard text |
+| Small | `text-xs` | Labels, metadata, timestamps |
+
+### Text Styling
+
+```tsx
+// Main title
+<h1 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono">
+  TITLE
+</h1>
+
+// Section header
+<h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+  SECTION
+</h3>
+
+// Body text
+<p className="text-sm text-primary-400 font-mono">
+  Content here
+</p>
+
+// Metadata/timestamp
+<span className="text-xs text-primary-600 font-mono">
+  [ 12:34:56 ]
+</span>
+```
+
+### Text Effects
+
+```tsx
+// Neon glow (primary elements)
+<span className="text-shadow-neon">GLOWING TEXT</span>
+
+// Subtle glow (secondary elements)
+<span className="text-shadow-neon-sm">Subtle glow</span>
+```
+
+---
+
+## Spacing
+
+### Padding Scale
+
+| Size | Class | Use Case |
+|------|-------|----------|
+| Small | `p-2`, `p-3` | Compact elements, badges |
+| Medium | `p-4` | Standard containers, cards |
+| Large | `p-6` | Modal content, major sections |
+
+### Common Patterns
+
+```tsx
+// Container padding
+<div className="p-4">
+
+// Button padding
+<button className="px-4 py-2">      // Standard
+<button className="px-6 py-3">      // Large/prominent
+<button className="px-2 py-0.5">    // Badge/small
+
+// Input padding
+<input className="px-3 py-2">
+
+// Modal header
+<div className="px-6 py-4">
+
+// Modal content
+<div className="p-6 space-y-4">
+```
+
+### Gaps & Spacing
+
+```tsx
+// Flex gap
+<div className="flex gap-2">    // Tight
+<div className="flex gap-3">    // Medium
+<div className="flex gap-4">    // Comfortable
+
+// Vertical spacing
+<div className="space-y-2">     // Tight list
+<div className="space-y-4">     // Standard sections
+<div className="space-y-6">     // Major sections
+```
+
+---
+
+## Borders & Shadows
+
+### Border Patterns
+
+**Important:** Always use `border-2` for consistency. Never use `border` (1px) on interactive elements.
+
+```tsx
+// Primary border (main interactive elements, modals, buttons)
+<div className="border-2 border-primary-500">
+
+// Section containers (info boxes, form sections)
+<div className="border-2 border-primary-700">
+
+// Layout dividers
+<div className="border-b-2 border-primary-500">  // Horizontal
+<div className="border-r-2 border-primary-500">  // Vertical
+
+// Sidebar dividers (can use thinner)
+<div className="border-b-2 border-primary-700">
+```
+
+**Border colors by purpose:**
+- `border-primary-500` - Interactive elements, main borders
+- `border-primary-700` - Container sections, info boxes
+- `border-accent-500` - Accent/highlighted elements
+- `border-red-500` - Danger/error states
+- `border-yellow-600` - Warning states
+- `border-green-500` - Success states
+- `border-gray-600` - Neutral/cancel buttons
+
+### Box Shadows (Neon Glow)
+
+Use the CSS utility classes defined in `index.css` instead of inline styles:
+
+```tsx
+// Input glow
+<input className="shadow-neon-input" />
+
+// Button glow (stronger)
+<button className="shadow-neon-button" />
+
+// Accent glow (cyan)
+<div className="shadow-neon-accent" />
+
+// Disable shadow when element is disabled
+<input className="shadow-neon-input disabled:shadow-none" />
+```
+
+The CSS utilities automatically respect the theme's `--enable-glow` variable:
+
+```css
+.shadow-neon-input {
+  box-shadow: 0 0 10px rgba(255, 136, 0, calc(0.2 * var(--enable-glow)));
+}
+.shadow-neon-button {
+  box-shadow: 0 0 15px rgba(255, 136, 0, calc(0.4 * var(--enable-glow)));
+}
+.shadow-neon-accent {
+  box-shadow: 0 0 10px rgba(0, 255, 255, calc(0.3 * var(--enable-glow)));
+}
+```
+
+### Important: No Rounded Corners
+
+Never use `rounded-*` classes. All corners should be sharp for the terminal aesthetic.
+
+---
+
+## Layout Patterns
+
+### App Structure
+
+```tsx
+<div className="h-screen bg-black flex flex-col">
+  <header className="border-b-2 border-primary-500">
+    {/* Fixed header */}
+  </header>
+
+  <main className="flex-1 flex overflow-hidden">
+    <aside className="w-64 border-r-2 border-primary-500 flex flex-col">
+      {/* Sidebar */}
+    </aside>
+
+    <div className="flex-1 flex flex-col">
+      {/* Main content */}
+    </div>
+
+    <aside className="w-56 border-l-2 border-primary-500">
+      {/* Right panel */}
+    </aside>
+  </main>
+</div>
+```
+
+### Common Layouts
+
+```tsx
+// Horizontal with space-between
+<div className="flex items-center justify-between">
+
+// Centered content
+<div className="flex items-center justify-center">
+
+// Vertical stack
+<div className="flex flex-col space-y-4">
+
+// Baseline alignment (for text with different sizes)
+<div className="flex items-baseline gap-4">
+```
+
+### Fixed Widths
+
+| Element | Width |
+|---------|-------|
+| Sidebar | `w-64` (256px) |
+| User panel | `w-56` (224px) |
+| Modal (small) | `max-w-md` |
+| Modal (medium) | `max-w-lg` |
+| Modal (large) | `max-w-2xl` |
+
+---
+
+## Component Patterns
+
+### Buttons
+
+All buttons must include background, hover, and disabled states for consistency.
+
+```tsx
+// Primary action
+<button className="
+  bg-primary-900 hover:bg-primary-800
+  text-primary-400
+  border-2 border-primary-500 hover:border-primary-400
+  font-mono text-sm
+  px-4 py-2
+  disabled:opacity-70 disabled:cursor-not-allowed
+  transition-all
+">
+
+// Accent/secondary
+<button className="
+  bg-accent-900 hover:bg-accent-800
+  text-accent-400
+  border-2 border-accent-500 hover:border-accent-400
+  font-mono text-sm
+  px-4 py-2
+  disabled:opacity-70 disabled:cursor-not-allowed
+  transition-all
+">
+
+// Danger
+<button className="
+  bg-red-900 hover:bg-red-800
+  text-red-400
+  border-2 border-red-500 hover:border-red-400
+  font-mono text-sm
+  px-4 py-2
+  disabled:opacity-70 disabled:cursor-not-allowed
+  transition-all
+">
+
+// Neutral/cancel
+<button className="
+  bg-gray-900 hover:bg-gray-800
+  text-gray-400
+  border-2 border-gray-600 hover:border-gray-500
+  font-mono text-sm
+  px-4 py-2
+  disabled:opacity-70 disabled:cursor-not-allowed
+  transition-all
+">
+```
+
+**Note:** Neutral/cancel buttons should use `bg-gray-900` not `bg-transparent` to maintain visual consistency.
+
+### Inputs
+
+```tsx
+// Text input
+<input
+  className="
+    w-full px-3 py-2
+    bg-black
+    border-2 border-primary-500
+    text-primary-400 font-mono text-sm
+    placeholder-primary-800
+    focus:outline-none focus:border-primary-400
+    disabled:border-gray-700 disabled:text-gray-600
+  "
+/>
+
+// Textarea
+<textarea
+  className="
+    w-full px-3 py-2
+    bg-black
+    border-2 border-primary-500
+    text-primary-400 font-mono text-sm
+    focus:outline-none focus:border-primary-400
+    resize-none
+  "
+  rows={3}
+/>
+
+// Input with prefix
+<div className="flex">
+  <span className="px-3 py-2 bg-primary-950 border-2 border-r-0 border-primary-500 text-accent-400 font-mono">
+    &gt;
+  </span>
+  <input className="flex-1 px-3 py-2 border-2 border-primary-500 ...">
+</div>
+```
+
+### Modals
+
+```tsx
+<div className="fixed inset-0 z-50 flex items-center justify-center">
+  {/* Backdrop */}
+  <div
+    className="absolute inset-0 bg-black bg-opacity-80"
+    onClick={onClose}
+  />
+
+  {/* Modal */}
+  <div className="relative z-10 w-full max-w-md mx-4 border-2 border-primary-500 bg-black">
+    {/* Header */}
+    <div className="flex items-center justify-between px-6 py-4 border-b-2 border-primary-500">
+      <h2 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono">
+        MODAL TITLE
+      </h2>
+      <button
+        onClick={onClose}
+        className="text-primary-500 hover:text-primary-400 text-2xl font-mono"
+      >
+        x
+      </button>
+    </div>
+
+    {/* Content */}
+    <div className="p-6 space-y-4">
+      {/* Form content */}
+    </div>
+
+    {/* Actions */}
+    <div className="flex justify-end gap-3 px-6 py-4 border-t border-primary-700">
+      <button>Cancel</button>
+      <button>Submit</button>
+    </div>
+  </div>
+</div>
+```
+
+### Form Sections
+
+```tsx
+<div>
+  <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+    SECTION TITLE
+  </h3>
+  <div className="border-2 border-primary-700 p-4 space-y-3">
+    {/* Form fields */}
+  </div>
+</div>
+```
+
+### Status/Info Boxes
+
+Semantic colors are allowed and encouraged for status indicators:
+
+```tsx
+// Warning
+<div className="p-3 border-2 border-yellow-600 bg-yellow-900 bg-opacity-30">
+  <div className="flex items-start gap-2">
+    <span className="text-yellow-500">!</span>
+    <div className="font-mono text-xs text-yellow-600">
+      <p className="font-bold text-yellow-500">WARNING TITLE</p>
+      <p className="mt-1">Warning message content</p>
+    </div>
+  </div>
+</div>
+
+// Error/Danger
+<div className="p-3 border-2 border-red-500 bg-red-900 bg-opacity-20">
+  <span className="text-red-500">⚠</span>
+  <span className="text-red-400">Error message</span>
+</div>
+
+// Success
+<div className="p-3 border-2 border-green-500 bg-green-900 bg-opacity-20">
+  <span className="text-green-500">✓</span>
+  <span className="text-green-400">Success message</span>
+</div>
+
+// Info (uses accent colors)
+<div className="p-3 border-2 border-accent-700 bg-accent-950 bg-opacity-20">
+  <span className="text-accent-400">Info message</span>
+</div>
+```
+
+### Option Cards
+
+```tsx
+<button className="
+  w-full p-4
+  border-2 border-primary-500
+  text-left
+  transition-all
+  hover:bg-primary-950 hover:bg-opacity-30
+">
+  <div className="flex items-start gap-4">
+    <div className="text-2xl">icon</div>
+    <div className="flex-1">
+      <h3 className="font-mono font-bold text-primary-400">OPTION TITLE</h3>
+      <p className="font-mono text-xs text-primary-600 mt-1">Description</p>
+    </div>
+    <div className="text-primary-500 font-mono text-sm">&gt;</div>
+  </div>
+</button>
+```
+
+---
+
+## Interactive States
+
+### Hover
+
+```tsx
+hover:bg-primary-800        // Background lightens
+hover:border-primary-400    // Border brightens
+hover:text-primary-400      // Text brightens
+```
+
+### Focus
+
+```tsx
+focus:outline-none          // Remove default outline
+focus:border-primary-400    // Border indicates focus
+```
+
+### Disabled
+
+Use `opacity-70` instead of completely graying out elements. This allows the button to maintain its color identity while clearly indicating it's disabled:
+
+```tsx
+// Standard disabled pattern (preferred)
+disabled:opacity-70 disabled:cursor-not-allowed
+
+// For elements with neon shadows
+disabled:shadow-none
+
+// Full disabled pattern for buttons
+<button className="
+  bg-primary-900 hover:bg-primary-800
+  text-primary-400
+  border-2 border-primary-500 hover:border-primary-400
+  disabled:opacity-70 disabled:cursor-not-allowed
+  transition-all
+">
+```
+
+**Rationale:** Using `opacity-70` keeps disabled buttons visually connected to their enabled state, making it clear what the button will do when enabled. The hover states still technically apply but appear muted due to the opacity.
+
+### Loading
+
+```tsx
+// Button with loading state
+<button disabled={isLoading}>
+  {isLoading ? (
+    <span className="flex items-center gap-2">
+      <span className="terminal-cursor">_</span>
+      LOADING...
+    </span>
+  ) : (
+    'SUBMIT'
+  )}
+</button>
+```
+
+### Selected/Active
+
+```tsx
+// Selected list item
+<button className={`
+  ${isSelected
+    ? 'bg-primary-900 text-primary-300 border-l-2 border-primary-400'
+    : 'text-primary-500 hover:bg-primary-950'
+  }
+`}>
+```
+
+---
+
+## Animations & Effects
+
+### Terminal Cursor
+
+```tsx
+// Blinking cursor animation
+<span className="terminal-cursor">_</span>
+```
+
+Defined in CSS:
+```css
+.terminal-cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+```
+
+### Scanline Effect
+
+```tsx
+// Apply to main container
+<div className="scanline">
+```
+
+Creates CRT-style horizontal lines overlay.
+
+### Transitions
+
+```tsx
+// Standard transition for interactive elements
+className="transition-all duration-200"
+```
+
+### Smooth Scroll
+
+```tsx
+// Auto-scroll to new messages
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+}, [messages]);
+```
+
+---
+
+## Theme System
+
+### Theme Toggle
+
+The app supports two themes controlled via `data-theme` attribute:
+
+```tsx
+// Apply theme to root
+<html data-theme="grayscale">
+```
+
+### Theme Differences
+
+| Feature | Neon (default) | Grayscale |
+|---------|----------------|-----------|
+| Primary | Orange (#ff8800) | Gray (#6b7280) |
+| Accent | Cyan (#00ffff) | Muted blue (#5b9fc7) |
+| Text shadows | Enabled | Disabled |
+| Box glows | Enabled | Disabled |
+
+### Glow Control
+
+```css
+/* Enabled in neon theme */
+--enable-glow: 1;
+
+/* Disabled in grayscale */
+--enable-glow: 0;
+```
+
+---
+
+## Best Practices
+
+### Do's
+
+1. **Use CSS variables** for colors (`text-primary-500`, not `text-orange-500`)
+2. **Always include font-mono** on text elements
+3. **Provide all interactive states** (hover, disabled, loading)
+4. **Use uppercase** for buttons and headers
+5. **Include character counters** for text inputs with limits
+6. **Add smooth transitions** to interactive elements
+7. **Use semantic color mapping** (red=error, yellow=warning, green=success)
+
+### Don'ts
+
+1. **Never use rounded corners** - keep terminal aesthetic
+2. **Don't mix font families** - monospace only
+3. **Avoid light backgrounds** - dark theme only
+4. **Don't skip disabled states** - always handle them
+5. **Never hardcode colors** - use theme variables
+
+### Accessibility
+
+- Maintain sufficient contrast (primary-400 on black = WCAG AA)
+- Use semantic HTML (`<button>`, not `<div onClick>`)
+- Include proper labels with `htmlFor`
+- Support keyboard navigation
+- Provide visual feedback for all interactions
+
+### Performance
+
+- Use `transition-all duration-200` sparingly
+- Prefer CSS animations over JavaScript
+- Use `overflow-hidden` on containers to prevent layout shifts
+- Lazy-load heavy components
+
+---
+
+## Quick Reference
+
+### Essential Classes
+
+```
+/* Layout */
+flex flex-col flex-1 h-screen w-full
+items-center justify-between gap-4
+p-4 px-3 py-2 space-y-4
+
+/* Borders */
+border-2 border-primary-500
+border-b-2 border-r-2
+
+/* Text */
+font-mono text-sm text-primary-400
+text-shadow-neon
+
+/* Interactive */
+hover:bg-primary-800 hover:border-primary-400
+disabled:opacity-70 disabled:cursor-not-allowed
+transition-all
+
+/* Shadows */
+shadow-neon-input shadow-neon-button shadow-neon-accent
+disabled:shadow-none
+```
+
+### Terminal Characters
+
+| Character | Usage |
+|-----------|-------|
+| `>` | Input prompt prefix |
+| `#` | Channel prefix |
+| `[ ]` | Timestamps, status |
+| `x` | Close button |
+| `_` | Cursor (animated) |
+| `!` | Warning indicator |
+| `X` | Error indicator |
+
+---
+
+*This style guide is based on analysis of all components in `frontend/src/components/`.*

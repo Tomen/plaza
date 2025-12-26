@@ -159,6 +159,19 @@
       inset calc(0px * var(--enable-glow)) calc(0px * var(--enable-glow)) calc(10px * var(--enable-glow)) rgba(0, 255, 0, calc(0.1 * var(--enable-glow)));
   }
 
+  /* Neon shadow utilities for inputs and buttons */
+  .shadow-neon-input {
+    box-shadow: 0 0 10px rgba(255, 136, 0, calc(0.2 * var(--enable-glow)));
+  }
+
+  .shadow-neon-button {
+    box-shadow: 0 0 15px rgba(255, 136, 0, calc(0.4 * var(--enable-glow)));
+  }
+
+  .shadow-neon-accent {
+    box-shadow: 0 0 10px rgba(0, 255, 255, calc(0.3 * var(--enable-glow)));
+  }
+
   .crt-flicker {
     animation: flicker 0.15s infinite;
   }

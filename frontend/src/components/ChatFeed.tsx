@@ -58,28 +58,17 @@ export function ChatFeed({ messages, isLoading, currentAddress }: ChatFeedProps)
         const isDelegate = msg.sender.toLowerCase() !== msg.profileOwner.toLowerCase();
 
         return (
-          <div key={index} className="flex justify-start">
-            <div className="w-full max-w-4xl font-mono text-sm">
-              {/* Single line message */}
-              <div className="flex items-baseline gap-4 text-primary-400">
-                {/* Timestamp */}
-                <span className="text-primary-600 text-xs flex-shrink-0">
-                  [ {formatTimestamp(msg.timestamp)} ]
-                </span>
-
-                {/* Username/Address */}
-                <span className={`${isCurrentUser ? 'text-accent-400 font-semibold' : 'text-primary-500'} flex-shrink-0`}>
-                  {isCurrentUser ? 'YOU' : displayIdentifier}
-                  {isDelegate && <span className="text-primary-700 text-xs ml-1">(via delegate)</span>}
-                  {' :'}
-                </span>
-
-                {/* Message content */}
-                <span className="text-primary-300 break-words flex-1">
-                  {msg.content}
-                </span>
-              </div>
-            </div>
+          <div key={index} className="w-full max-w-4xl font-mono text-sm text-primary-400">
+            <span className="text-primary-600 text-xs">
+              [ {formatTimestamp(msg.timestamp)} ]
+            </span>
+            {' '}
+            <span className={isCurrentUser ? 'text-accent-400 font-semibold' : 'text-primary-500'}>
+              {isCurrentUser ? 'YOU' : displayIdentifier}
+              {isDelegate && <span className="text-primary-700 text-xs ml-1">(via delegate)</span>}
+            </span>
+            <span className="text-primary-600"> : </span>
+            <span className="text-primary-300">{msg.content}</span>
           </div>
         );
       })}

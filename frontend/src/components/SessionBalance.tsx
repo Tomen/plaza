@@ -29,7 +29,7 @@ export function SessionBalance({ address, balance, isAuthorized, onTopUp }: Sess
         {isLow && (
           <button
             onClick={onTopUp}
-            className="px-2 py-0.5 bg-red-900 hover:bg-red-800 text-red-400 border border-red-500 text-xs"
+            className="px-2 py-0.5 bg-red-900 hover:bg-red-800 text-red-400 border-2 border-red-500 hover:border-red-400 text-xs transition-all"
           >
             LOW - TOP UP
           </button>

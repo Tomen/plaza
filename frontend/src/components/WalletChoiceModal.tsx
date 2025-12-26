@@ -34,8 +34,8 @@ export function WalletChoiceModal({
             disabled={!hasMetaMask}
             className={`w-full p-4 border-2 text-left transition-all ${
               hasMetaMask
-                ? 'border-accent-500 hover:bg-accent-950 hover:bg-opacity-30 cursor-pointer'
-                : 'border-gray-700 cursor-not-allowed opacity-50'
+                ? 'bg-accent-950 bg-opacity-20 border-accent-500 hover:bg-accent-950 hover:bg-opacity-40 cursor-pointer'
+                : 'bg-gray-900 border-gray-700 cursor-not-allowed opacity-70'
             }`}
           >
             <div className="flex items-center gap-4">
@@ -61,7 +61,7 @@ export function WalletChoiceModal({
           {/* In-App Wallet Option */}
           <button
             onClick={onSelectInApp}
-            className="w-full p-4 border-2 border-primary-500 hover:bg-primary-950 hover:bg-opacity-30 text-left transition-all"
+            className="w-full p-4 bg-primary-950 bg-opacity-20 border-2 border-primary-500 hover:bg-primary-950 hover:bg-opacity-40 text-left transition-all"
           >
             <div className="flex items-center gap-4">
               <div className="text-3xl">🔐</div>
@@ -81,7 +81,7 @@ export function WalletChoiceModal({
         </div>
 
         {/* Info section */}
-        <div className="mt-6 p-3 border border-yellow-700 bg-yellow-950 bg-opacity-20">
+        <div className="mt-6 p-3 border-2 border-yellow-700 bg-yellow-950 bg-opacity-20">
           <div className="flex items-start gap-2">
             <span className="text-yellow-500">!</span>
             <div className="font-mono text-xs text-yellow-600">

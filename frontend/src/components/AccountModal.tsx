@@ -176,7 +176,7 @@ export function AccountModal({
             <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
               {isStandaloneMode ? 'IN-APP WALLET' : 'BROWSER WALLET'}
             </h3>
-            <div className="border border-primary-700 p-4">
+            <div className="border-2 border-primary-700 p-4">
               {walletAddress ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between font-mono text-sm">
@@ -196,7 +196,7 @@ export function AccountModal({
                   {isStandaloneMode && onExportPrivateKey && (
                     <button
                       onClick={onExportPrivateKey}
-                      className="w-full py-2 border border-yellow-600 text-yellow-400 font-mono text-sm hover:border-yellow-500"
+                      className="w-full py-2 bg-yellow-900 hover:bg-yellow-800 border-2 border-yellow-600 text-yellow-400 font-mono text-sm hover:border-yellow-500 transition-all"
                     >
                       EXPORT PRIVATE KEY
                     </button>
@@ -204,14 +204,14 @@ export function AccountModal({
                   {isStandaloneMode && onConnectBrowserWallet && (
                     <button
                       onClick={onConnectBrowserWallet}
-                      className="w-full py-2 border border-accent-600 text-accent-400 font-mono text-sm hover:border-accent-500"
+                      className="w-full py-2 bg-accent-900 hover:bg-accent-800 border-2 border-accent-600 text-accent-400 font-mono text-sm hover:border-accent-500 transition-all"
                     >
                       CONNECT BROWSER WALLET
                     </button>
                   )}
                   <button
                     onClick={onDisconnect}
-                    className="w-full py-2 border border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+                    className="w-full py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
                   >
                     DISCONNECT
                   </button>
@@ -220,7 +220,7 @@ export function AccountModal({
                 <button
                   onClick={onConnect}
                   disabled={isConnecting}
-                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-50"
+                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                 >
                   {isConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
                 </button>
@@ -232,7 +232,7 @@ export function AccountModal({
           {walletAddress && (
             <div>
               <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">PROFILE</h3>
-              <form onSubmit={handleProfileSubmit} className="border border-primary-700 p-4 space-y-4">
+              <form onSubmit={handleProfileSubmit} className="border-2 border-primary-700 p-4 space-y-4">
                 <div>
                   <label className="block text-primary-400 font-mono text-sm mb-1">
                     DISPLAY NAME *
@@ -272,7 +272,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || !displayName.trim()}
-                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                 >
                   {isSubmitting ? 'SAVING...' : profile?.exists ? 'UPDATE PROFILE' : 'CREATE PROFILE'}
                 </button>
@@ -284,14 +284,14 @@ export function AccountModal({
           {walletAddress && (
             <div>
               <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">THEME</h3>
-              <div className="border border-primary-700 p-4">
+              <div className="border-2 border-primary-700 p-4">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setTheme('neon')}
                     className={`flex-1 py-3 px-4 border-2 font-mono text-sm transition-all ${
                       theme === 'neon'
-                        ? 'bg-primary-900 border-primary-500 text-primary-400'
-                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-600'
+                        ? 'bg-primary-900 hover:bg-primary-800 border-primary-500 hover:border-primary-400 text-primary-400'
+                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-500 hover:bg-primary-900 hover:text-primary-400'
                     }`}
                   >
                     <div className="text-left">
@@ -303,8 +303,8 @@ export function AccountModal({
                     onClick={() => setTheme('grayscale')}
                     className={`flex-1 py-3 px-4 border-2 font-mono text-sm transition-all ${
                       theme === 'grayscale'
-                        ? 'bg-primary-900 border-primary-500 text-primary-400'
-                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-600'
+                        ? 'bg-primary-900 hover:bg-primary-800 border-primary-500 hover:border-primary-400 text-primary-400'
+                        : 'bg-black border-primary-700 text-primary-600 hover:border-primary-500 hover:bg-primary-900 hover:text-primary-400'
                     }`}
                   >
                     <div className="text-left">
@@ -330,7 +330,7 @@ export function AccountModal({
               </h3>
 
               {!isAuthorized ? (
-                <div className="border border-primary-700 p-4 space-y-3">
+                <div className="border-2 border-primary-700 p-4 space-y-3">
                   <div className="font-mono text-sm text-primary-400">
                     Status: <span className="text-yellow-500">Not Set Up</span>
                   </div>
@@ -340,13 +340,13 @@ export function AccountModal({
                   <button
                     onClick={handleSetupAppWallet}
                     disabled={isSettingUp}
-                    className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-50"
+                    className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                   >
                     {isSettingUp ? 'SETTING UP...' : 'SETUP IN-APP WALLET'}
                   </button>
                 </div>
               ) : (
-                <div className="border border-primary-700 p-4 space-y-4">
+                <div className="border-2 border-primary-700 p-4 space-y-4">
                   <div className="font-mono text-sm space-y-2">
                     <div className="flex justify-between text-primary-400">
                       <span>Address:</span>
@@ -370,7 +370,7 @@ export function AccountModal({
                           onChange={(e) => setCustomAmount(e.target.value)}
                           placeholder="10"
                           disabled={isFunding}
-                          className="w-full px-3 py-2 pr-12 bg-black border border-primary-500 text-primary-400 font-mono text-sm focus:outline-none text-right"
+                          className="w-full px-3 py-2 pr-12 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 text-right disabled:opacity-70"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 font-mono text-sm pointer-events-none">
                           PAS
@@ -379,7 +379,7 @@ export function AccountModal({
                       <button
                         onClick={handleCustomTopUp}
                         disabled={isFunding || !customAmount}
-                        className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border border-primary-500 font-mono text-sm disabled:opacity-50"
+                        className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                       >
                         SEND
                       </button>
@@ -393,7 +393,7 @@ export function AccountModal({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="w-full py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+            className="w-full py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
           >
             CLOSE
           </button>

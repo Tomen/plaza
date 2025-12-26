@@ -72,7 +72,7 @@ export function InAppWalletSetup({
             </div>
             <button
               onClick={handleCopyAddress}
-              className="px-3 py-2 border-2 border-primary-500 text-primary-400 font-mono text-sm hover:bg-primary-950"
+              className="px-3 py-2 bg-primary-900 hover:bg-primary-800 border-2 border-primary-500 text-primary-400 font-mono text-sm transition-all"
             >
               {copied ? '✓' : 'COPY'}
             </button>
@@ -93,7 +93,7 @@ export function InAppWalletSetup({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="px-3 py-2 border-2 border-primary-500 text-primary-400 font-mono text-sm hover:bg-primary-950 disabled:opacity-50"
+              className="px-3 py-2 bg-primary-900 hover:bg-primary-800 border-2 border-primary-500 text-primary-400 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               {isRefreshing ? '...' : 'REFRESH'}
             </button>
@@ -125,7 +125,7 @@ export function InAppWalletSetup({
         )}
 
         {/* Warning */}
-        <div className="mb-6 p-3 border border-yellow-700 bg-yellow-950 bg-opacity-20">
+        <div className="mb-6 p-3 border-2 border-yellow-700 bg-yellow-950 bg-opacity-20">
           <div className="flex items-start gap-2">
             <span className="text-yellow-500">!</span>
             <div className="font-mono text-xs text-yellow-600">
@@ -139,17 +139,17 @@ export function InAppWalletSetup({
         <div className="flex gap-3">
           <button
             onClick={onBack}
-            className="flex-1 py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+            className="flex-1 py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
           >
             BACK
           </button>
           <button
             onClick={onContinue}
             disabled={!hasBalance}
-            className={`flex-1 py-2 font-mono text-sm border-2 ${
+            className={`flex-1 py-2 font-mono text-sm border-2 transition-all ${
               hasBalance
-                ? 'bg-green-900 hover:bg-green-800 text-green-400 border-green-500'
-                : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed'
+                ? 'bg-green-900 hover:bg-green-800 text-green-400 border-green-500 hover:border-green-400'
+                : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed opacity-70'
             }`}
           >
             {hasBalance ? 'CONTINUE' : 'FUND WALLET FIRST'}

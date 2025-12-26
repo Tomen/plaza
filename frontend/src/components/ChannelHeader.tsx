@@ -27,7 +27,7 @@ export function ChannelHeader({ channelInfo, isLoading }: ChannelHeaderProps) {
             <span className="text-accent-400">#</span>
             {channelInfo.name}
             {channelInfo.postingMode === PostingMode.Permissioned && (
-              <span className="text-xs bg-yellow-900 text-yellow-400 px-2 py-0.5 border border-yellow-600">
+              <span className="text-xs bg-yellow-900 text-yellow-400 px-2 py-0.5 border-2 border-yellow-600">
                 PRIVATE
               </span>
             )}
@@ -44,7 +44,7 @@ export function ChannelHeader({ channelInfo, isLoading }: ChannelHeaderProps) {
       </div>
 
       {channelInfo.motd && (
-        <div className="mt-2 px-3 py-2 bg-accent-950 bg-opacity-50 border border-accent-700">
+        <div className="mt-2 px-3 py-2 bg-accent-950 bg-opacity-50 border-2 border-accent-700">
           <span className="text-accent-500 font-mono text-xs">MOTD:</span>
           <span className="text-accent-400 font-mono text-xs ml-2">{channelInfo.motd}</span>
         </div>

@@ -51,7 +51,7 @@ export function UserListPanel({ messages, currentAddress, onSelectUser }: UserLi
   return (
     <div className="w-56 border-l-2 border-primary-500 bg-black flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-primary-700">
+      <div className="p-4 border-b-2 border-primary-700">
         <h2 className="text-primary-500 font-mono text-sm font-bold">
           USERS <span className="text-primary-700">({users.length})</span>
         </h2>
@@ -75,7 +75,7 @@ export function UserListPanel({ messages, currentAddress, onSelectUser }: UserLi
                 <button
                   key={user.address}
                   onClick={() => onSelectUser?.(user.address)}
-                  className="w-full px-4 py-1.5 font-mono text-sm flex items-center gap-2 hover:bg-primary-950 transition-colors text-left"
+                  className="w-full px-4 py-1.5 bg-black font-mono text-sm flex items-center gap-2 hover:bg-primary-950 transition-all text-left"
                 >
                   <span
                     className={

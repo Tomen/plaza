@@ -7,12 +7,16 @@ import { useChannelRegistry } from './hooks/useChannelRegistry';
 import { useChannel } from './hooks/useChannel';
 import { useUserRegistry } from './hooks/useUserRegistry';
 import { useAppWallet, type WalletMode } from './hooks/useAppWallet';
+import { useDMRegistry } from './hooks/useDMRegistry';
+import { useDMConversation } from './hooks/useDMConversation';
+import { useSessionKeys } from './hooks/useSessionKeys';
+import { useDeployments } from './hooks/useDeployments';
 import { hasStandaloneWallet } from './utils/appWallet';
 import { AccountButton } from './components/AccountButton';
 import { AccountModal } from './components/AccountModal';
 import { ChatFeed } from './components/ChatFeed';
 import { MessageInput } from './components/MessageInput';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, type ViewMode } from './components/Sidebar';
 import { ChannelHeader } from './components/ChannelHeader';
 import { UserListPanel } from './components/UserListPanel';
 import { UserProfileModal } from './components/UserProfileModal';
@@ -21,15 +25,21 @@ import { WalletChoiceModal } from './components/WalletChoiceModal';
 import { InAppWalletSetup } from './components/InAppWalletSetup';
 import { PrivateKeyExportModal } from './components/PrivateKeyExportModal';
 import { LinkBrowserWalletModal } from './components/LinkBrowserWalletModal';
+import { DMConversationView } from './components/DMConversationView';
+import { NewDMModal } from './components/NewDMModal';
 import type { PostingMode } from './types/contracts';
 
 // RPC URL for standalone wallet (Paseo Asset Hub testnet)
 const RPC_URL = 'https://testnet-passet-hub-eth-rpc.polkadot.io';
 
 function App() {
-  // Get registry address from URL parameter (?registry=0x...)
+  // Load deployments from JSON file
+  const { currentNetwork: deployments } = useDeployments();
+
+  // Get registry address from URL parameter or deployments.json
   const urlParams = new URLSearchParams(window.location.search);
-  const registryAddress = urlParams.get('registry');
+  const registryAddress = urlParams.get('registry') || deployments?.channelRegistry || null;
+  const dmRegistryAddress = urlParams.get('dmRegistry') || deployments?.dmRegistry || null;
   const directChannelAddress = urlParams.get('channel');
 
   // Wallet mode: 'browser' | 'standalone' | 'none'
@@ -180,6 +190,79 @@ function App() {
     }
   }, [selectedChannel, channelRegistry.channels]);
 
+  // DM-related state
+  const [viewMode, setViewMode] = useState<ViewMode>('channels');
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [showNewDMModal, setShowNewDMModal] = useState(false);
+  const [dmOtherParticipant, setDmOtherParticipant] = useState<string | null>(null);
+  const [dmOtherPublicKey, setDmOtherPublicKey] = useState<string | null>(null);
+  const [dmOtherParticipantName, setDmOtherParticipantName] = useState<string | null>(null);
+
+  // DM Registry hook
+  const dmRegistry = useDMRegistry({
+    registryAddress: dmRegistryAddress,
+    provider: walletConfig.activeProvider,
+    userAddress: walletConfig.activeAddress,
+    signer: walletConfig.channelSigner,
+    enabled: walletConfig.isReady && !!dmRegistryAddress,
+  });
+
+  // Session keys hook (for encrypted DMs)
+  const sessionKeys = useSessionKeys({
+    setSessionPublicKeyOnChain: userRegistry.setSessionPublicKey,
+    clearSessionPublicKeyOnChain: userRegistry.clearSessionPublicKey,
+    getOnChainPublicKey: useCallback(
+      () => userRegistry.getSessionPublicKey(walletConfig.activeAddress || ''),
+      [userRegistry.getSessionPublicKey, walletConfig.activeAddress]
+    ),
+    enabled: walletConfig.isReady && !!userRegistryAddress,
+  });
+
+  // DM Conversation hook (for selected conversation)
+  const dmConversation = useDMConversation({
+    conversationAddress: selectedConversation,
+    provider: walletConfig.activeProvider,
+    userAddress: walletConfig.activeAddress,
+    signer: walletConfig.channelSigner,
+    theirPublicKey: dmOtherPublicKey,
+    enabled: walletConfig.isReady && viewMode === 'dms' && !!selectedConversation,
+  });
+
+  // Load other participant's info when conversation changes
+  useEffect(() => {
+    if (selectedConversation && dmConversation.participant1 && dmConversation.participant2) {
+      const otherParticipant = dmConversation.participant1.toLowerCase() === walletConfig.activeAddress?.toLowerCase()
+        ? dmConversation.participant2
+        : dmConversation.participant1;
+      setDmOtherParticipant(otherParticipant);
+
+      // Load their public key
+      userRegistry.getSessionPublicKey(otherParticipant)
+        .then(setDmOtherPublicKey)
+        .catch(() => setDmOtherPublicKey(null));
+
+      // Load their display name
+      userRegistry.getProfile(otherParticipant)
+        .then(profile => setDmOtherParticipantName(profile.exists ? profile.displayName : null))
+        .catch(() => setDmOtherParticipantName(null));
+    } else {
+      setDmOtherParticipant(null);
+      setDmOtherPublicKey(null);
+      setDmOtherParticipantName(null);
+    }
+  }, [selectedConversation, dmConversation.participant1, dmConversation.participant2, walletConfig.activeAddress, userRegistry]);
+
+  // Auto-initialize session key when entering DMs
+  useEffect(() => {
+    if (viewMode === 'dms' && walletConfig.isReady && !sessionKeys.hasLocalKey && userRegistry.profile?.exists) {
+      const toastId = toast.loading('Setting up encrypted messaging...');
+      sessionKeys.initializeSessionKey()
+        .then(() => toast.success('Encrypted messaging ready!', { id: toastId }))
+        .catch(() => toast.error('Failed to setup encryption', { id: toastId }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, walletConfig.isReady, sessionKeys.hasLocalKey, userRegistry.profile?.exists]);
+
   // Get display name helper
   const getDisplayName = useCallback(async (address: string): Promise<string> => {
     try {
@@ -266,6 +349,56 @@ function App() {
   const handleCreateChannel = async (name: string, description: string, postingMode: PostingMode) => {
     const result = await channelRegistry.createChannel(name, description, postingMode);
     setSelectedChannel(result.channelAddress);
+  };
+
+  // Start DM conversation handler
+  const handleStartDM = async (otherUserAddress: string) => {
+    if (!walletConfig.activeAddress) return;
+
+    try {
+      // Check if conversation already exists
+      const existingConv = await dmRegistry.getConversation(
+        walletConfig.activeAddress,
+        otherUserAddress
+      );
+
+      if (existingConv && existingConv !== ethers.ZeroAddress) {
+        setSelectedConversation(existingConv);
+      } else {
+        // Create new conversation
+        const toastId = toast.loading('Creating conversation...');
+        try {
+          const newConvAddress = await dmRegistry.createConversation(otherUserAddress);
+          setSelectedConversation(newConvAddress);
+          toast.success('Conversation created!', { id: toastId });
+        } catch (err) {
+          toast.error('Failed to create conversation', { id: toastId });
+          throw err;
+        }
+      }
+
+      setViewMode('dms');
+      setShowNewDMModal(false);
+    } catch (err) {
+      console.error('Failed to start DM:', err);
+    }
+  };
+
+  // Send DM message handler
+  const handleSendDMMessage = async (content: string) => {
+    // Auto-create profile if user doesn't have one
+    if (!userRegistry.profile?.exists) {
+      const toastId = toast.loading('Creating profile...');
+      try {
+        await userRegistry.createDefaultProfile();
+        toast.success('Profile created!', { id: toastId });
+      } catch (err) {
+        toast.error('Failed to create profile', { id: toastId });
+        throw err;
+      }
+    }
+
+    await dmConversation.sendMessage(content);
   };
 
   // Setup in-app wallet handler (authorize + fund)
@@ -392,15 +525,27 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Sidebar with channels */}
+        {/* Sidebar with channels and DMs */}
         {registryAddress && (
           <Sidebar
             channels={channelRegistry.channels}
             selectedChannel={selectedChannel}
-            onSelectChannel={setSelectedChannel}
+            onSelectChannel={(addr) => {
+              setSelectedChannel(addr);
+              setViewMode('channels');
+            }}
             onCreateChannel={() => setShowCreateChannelModal(true)}
             provider={walletConfig.activeProvider}
             isConnected={!!walletConfig.activeAddress}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            dmConversations={dmRegistry.conversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={setSelectedConversation}
+            onNewDM={() => setShowNewDMModal(true)}
+            dmLoading={dmRegistry.isLoading}
+            dmRegistryAvailable={!!dmRegistryAddress}
+            getDisplayName={getDisplayName}
           />
         )}
 
@@ -451,29 +596,57 @@ function App() {
             </div>
           )}
 
-          {/* Channel header */}
-          <ChannelHeader
-            channelInfo={channel.channelInfo}
-            isLoading={channel.isLoading && !channel.channelInfo}
-          />
+          {/* Conditional content based on view mode */}
+          {viewMode === 'channels' ? (
+            <>
+              {/* Channel header */}
+              <ChannelHeader
+                channelInfo={channel.channelInfo}
+                isLoading={channel.isLoading && !channel.channelInfo}
+              />
 
-          {/* Chat feed */}
-          <ChatFeed
-            messages={channel.messages}
-            isLoading={channel.isLoading && channel.messages.length === 0}
-            currentAddress={walletConfig.activeAddress}
-          />
+              {/* Chat feed */}
+              <ChatFeed
+                messages={channel.messages}
+                isLoading={channel.isLoading && channel.messages.length === 0}
+                currentAddress={walletConfig.activeAddress}
+              />
 
-          {/* Message input */}
-          <MessageInput
-            onSend={handleSendMessage}
-            disabled={!canPost}
-            isSending={isSending}
-          />
+              {/* Message input */}
+              <MessageInput
+                onSend={handleSendMessage}
+                disabled={!canPost}
+                isSending={isSending}
+              />
+            </>
+          ) : (
+            // DM conversation view
+            selectedConversation ? (
+              <DMConversationView
+                messages={dmConversation.messages}
+                isLoading={dmConversation.isLoading}
+                isSending={dmConversation.isSending}
+                onSendMessage={handleSendDMMessage}
+                otherParticipantName={dmOtherParticipantName}
+                otherParticipantAddress={dmOtherParticipant || ''}
+                canSend={!!dmOtherPublicKey && sessionKeys.hasLocalKey && !!walletConfig.activeAddress}
+                noSessionKey={!dmOtherPublicKey}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-primary-600 font-mono text-lg mb-2">SELECT A CONVERSATION</p>
+                  <p className="text-primary-700 font-mono text-sm">
+                    Choose a conversation from the sidebar or start a new one
+                  </p>
+                </div>
+              </div>
+            )
+          )}
         </div>
 
-        {/* User list panel */}
-        {selectedChannel && (
+        {/* User list panel (only for channels) */}
+        {viewMode === 'channels' && selectedChannel && (
           <UserListPanel
             messages={channel.messages}
             currentAddress={walletConfig.activeAddress}
@@ -556,11 +729,22 @@ function App() {
         onCreate={handleCreateChannel}
       />
 
+      <NewDMModal
+        isOpen={showNewDMModal}
+        onClose={() => setShowNewDMModal(false)}
+        onCreateConversation={dmRegistry.createConversation}
+        checkConversationExists={dmRegistry.conversationExists}
+        getExistingConversation={dmRegistry.getConversation}
+        userAddress={walletConfig.activeAddress}
+      />
+
       <UserProfileModal
         isOpen={!!profileModalAddress}
         onClose={() => setProfileModalAddress(null)}
         userAddress={profileModalAddress}
         getProfile={userRegistry.getProfile}
+        onStartDM={dmRegistryAddress ? handleStartDM : undefined}
+        dmRegistryAvailable={!!dmRegistryAddress}
       />
     </div>
   );

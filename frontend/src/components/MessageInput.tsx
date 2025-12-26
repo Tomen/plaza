@@ -41,20 +41,14 @@ export function MessageInput({ onSend, disabled, isSending }: MessageInputProps)
             onChange={(e) => setMessage(e.target.value)}
             placeholder={disabled ? '[CONNECT WALLET TO TRANSMIT]' : '[ENTER MESSAGE]'}
             disabled={disabled || isSending}
-            className="w-full pl-8 pr-4 py-3 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 placeholder-primary-800 transition-all"
-            style={{
-              boxShadow: disabled ? 'none' : '0 0 10px rgba(255, 136, 0, 0.2)',
-            }}
+            className="w-full pl-8 pr-4 py-3 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 disabled:shadow-none placeholder-primary-800 transition-all shadow-neon-input"
             maxLength={500}
           />
         </div>
         <button
           type="submit"
           disabled={disabled || isSending || !message.trim()}
-          className="bg-primary-900 hover:bg-primary-800 disabled:bg-gray-900 text-primary-400 disabled:text-gray-700 font-mono text-sm px-8 py-3 border-2 border-primary-500 hover:border-primary-400 disabled:border-gray-700 transition-all uppercase tracking-wider font-bold"
-          style={{
-            boxShadow: disabled || isSending ? 'none' : '0 0 15px rgba(255, 136, 0, 0.4)',
-          }}
+          className="bg-primary-900 hover:bg-primary-800 disabled:bg-gray-900 text-primary-400 disabled:text-gray-700 font-mono text-sm px-8 py-3 border-2 border-primary-500 hover:border-primary-400 disabled:border-gray-700 disabled:shadow-none transition-all uppercase tracking-wider font-bold shadow-neon-button"
         >
           {isSending ? (
             <span className="flex items-center gap-2">

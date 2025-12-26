@@ -36,6 +36,12 @@ interface UseUserRegistryReturn {
   removeDelegate: (delegateAddress: string) => Promise<void>;
   isDelegate: (delegateAddress: string) => Promise<boolean>;
 
+  // Session key actions (for ECDH encryption)
+  setSessionPublicKey: (sessionPubKey: Uint8Array) => Promise<void>;
+  clearSessionPublicKey: () => Promise<void>;
+  getSessionPublicKey: (address: string) => Promise<string>;
+  hasSessionPublicKey: (address: string) => Promise<boolean>;
+
   // Lookup
   resolveToOwner: (address: string) => Promise<string>;
   getProfile: (address: string) => Promise<Profile>;
@@ -282,6 +288,48 @@ export function useUserRegistry({
     [getReadContract]
   );
 
+  // Session key functions for ECDH encryption
+  const setSessionPublicKey = useCallback(
+    async (sessionPubKey: Uint8Array) => {
+      if (!enabled) throw new Error("Wallet not ready");
+      const contract = await getWriteContract();
+      if (!contract) throw new Error("Contract not available");
+
+      const tx = await contract.setSessionPublicKey(sessionPubKey);
+      await tx.wait();
+    },
+    [enabled, getWriteContract]
+  );
+
+  const clearSessionPublicKeyFn = useCallback(async () => {
+    if (!enabled) throw new Error("Wallet not ready");
+    const contract = await getWriteContract();
+    if (!contract) throw new Error("Contract not available");
+
+    const tx = await contract.clearSessionPublicKey();
+    await tx.wait();
+  }, [enabled, getWriteContract]);
+
+  const getSessionPublicKey = useCallback(
+    async (address: string): Promise<string> => {
+      const contract = getReadContract();
+      if (!contract) return "";
+
+      return contract.getSessionPublicKey(address);
+    },
+    [getReadContract]
+  );
+
+  const hasSessionPublicKeyFn = useCallback(
+    async (address: string): Promise<boolean> => {
+      const contract = getReadContract();
+      if (!contract) return false;
+
+      return contract.hasSessionPublicKey(address);
+    },
+    [getReadContract]
+  );
+
   return {
     profile,
     links,
@@ -298,6 +346,10 @@ export function useUserRegistry({
     addDelegate,
     removeDelegate,
     isDelegate,
+    setSessionPublicKey,
+    clearSessionPublicKey: clearSessionPublicKeyFn,
+    getSessionPublicKey,
+    hasSessionPublicKey: hasSessionPublicKeyFn,
     resolveToOwner,
     getProfile: getProfileFn,
     hasProfile,

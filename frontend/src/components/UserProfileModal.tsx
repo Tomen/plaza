@@ -7,6 +7,8 @@ interface UserProfileModalProps {
   onClose: () => void;
   userAddress: string | null;
   getProfile: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  dmRegistryAvailable?: boolean;
 }
 
 export function UserProfileModal({
@@ -14,6 +16,8 @@ export function UserProfileModal({
   onClose,
   userAddress,
   getProfile,
+  onStartDM,
+  dmRegistryAvailable = false,
 }: UserProfileModalProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +105,7 @@ export function UserProfileModal({
                 <label className="block text-primary-600 font-mono text-xs mb-1">
                   DISPLAY NAME
                 </label>
-                <div className="border border-primary-700 p-3 bg-primary-950">
+                <div className="border-2 border-primary-700 p-3 bg-primary-950">
                   <span className="text-primary-300 font-mono text-sm">
                     {profile.displayName || '(unnamed)'}
                   </span>
@@ -114,7 +118,7 @@ export function UserProfileModal({
                   <label className="block text-primary-600 font-mono text-xs mb-1">
                     BIO
                   </label>
-                  <div className="border border-primary-700 p-3 bg-primary-950">
+                  <div className="border-2 border-primary-700 p-3 bg-primary-950">
                     <span className="text-primary-300 font-mono text-sm whitespace-pre-wrap">
                       {profile.bio}
                     </span>
@@ -127,7 +131,7 @@ export function UserProfileModal({
                 <label className="block text-primary-600 font-mono text-xs mb-1">
                   WALLET ADDRESS
                 </label>
-                <div className="border border-primary-700 p-3 bg-primary-950 flex items-center justify-between">
+                <div className="border-2 border-primary-700 p-3 bg-primary-950 flex items-center justify-between">
                   <span className="text-accent-400 font-mono text-sm">
                     {truncateAddress(userAddress)}
                   </span>
@@ -142,13 +146,26 @@ export function UserProfileModal({
             </>
           ) : null}
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="w-full py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 mt-4"
-          >
-            CLOSE
-          </button>
+          {/* Action buttons */}
+          <div className="space-y-2 mt-4">
+            {dmRegistryAvailable && onStartDM && userAddress && (
+              <button
+                onClick={() => {
+                  onStartDM(userAddress);
+                  onClose();
+                }}
+                className="w-full py-2 bg-accent-950 hover:bg-accent-900 border-2 border-accent-500 text-accent-400 font-mono text-sm hover:border-accent-400 transition-all"
+              >
+                SEND DM
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="w-full py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
+            >
+              CLOSE
+            </button>
+          </div>
         </div>
       </div>
     </div>

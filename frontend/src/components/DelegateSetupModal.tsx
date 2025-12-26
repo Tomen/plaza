@@ -89,7 +89,7 @@ export function DelegateSetupModal({
 
         <div className="space-y-6">
           {/* Session wallet info */}
-          <div className="border border-primary-700 p-4">
+          <div className="border-2 border-primary-700 p-4">
             <div className="font-mono text-sm">
               <div className="flex justify-between text-primary-400 mb-2">
                 <span>SESSION ADDRESS:</span>
@@ -103,7 +103,7 @@ export function DelegateSetupModal({
           </div>
 
           {/* Step 1: Authorize */}
-          <div className={`border p-4 ${isAuthorized ? 'border-green-700' : 'border-primary-700'}`}>
+          <div className={`border-2 p-4 ${isAuthorized ? 'border-green-700' : 'border-primary-700'}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono text-sm text-primary-400">
                 STEP 1: AUTHORIZE SESSION WALLET
@@ -119,14 +119,14 @@ export function DelegateSetupModal({
             <button
               onClick={handleAuthorize}
               disabled={isAuthorizing || isAuthorized}
-              className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:bg-gray-900 disabled:text-gray-600 disabled:border-gray-700"
+              className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               {isAuthorizing ? 'AUTHORIZING...' : isAuthorized ? 'AUTHORIZED' : 'AUTHORIZE'}
             </button>
           </div>
 
           {/* Step 2: Fund */}
-          <div className="border border-primary-700 p-4">
+          <div className="border-2 border-primary-700 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono text-sm text-primary-400">
                 STEP 2: FUND SESSION WALLET
@@ -142,7 +142,7 @@ export function DelegateSetupModal({
                   key={amt.label}
                   onClick={() => handleFund(amt.value)}
                   disabled={isFunding}
-                  className="flex-1 py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border border-accent-500 font-mono text-xs disabled:opacity-50"
+                  className="flex-1 py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 hover:border-accent-400 font-mono text-xs disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                 >
                   {amt.label}
                 </button>
@@ -156,12 +156,12 @@ export function DelegateSetupModal({
                 onChange={(e) => setCustomAmount(e.target.value)}
                 placeholder="Custom amount"
                 disabled={isFunding}
-                className="flex-1 px-3 py-2 bg-black border border-primary-500 text-primary-400 font-mono text-sm focus:outline-none"
+                className="flex-1 px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:opacity-70"
               />
               <button
                 onClick={handleCustomFund}
                 disabled={isFunding || !customAmount}
-                className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border border-primary-500 font-mono text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 hover:border-primary-400 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
               >
                 SEND
               </button>
@@ -171,7 +171,7 @@ export function DelegateSetupModal({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="w-full py-2 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500"
+            className="w-full py-2 bg-gray-900 hover:bg-gray-800 border-2 border-gray-600 text-gray-400 font-mono text-sm hover:border-gray-500 transition-all"
           >
             CLOSE
           </button>
