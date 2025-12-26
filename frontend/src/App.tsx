@@ -14,6 +14,7 @@ import { ChatFeed } from './components/ChatFeed';
 import { MessageInput } from './components/MessageInput';
 import { Sidebar } from './components/Sidebar';
 import { ChannelHeader } from './components/ChannelHeader';
+import { UserListPanel } from './components/UserListPanel';
 import { CreateChannelModal } from './components/CreateChannelModal';
 import { WalletChoiceModal } from './components/WalletChoiceModal';
 import { InAppWalletSetup } from './components/InAppWalletSetup';
@@ -318,7 +319,7 @@ function App() {
   const canPost = !!walletConfig.activeAddress;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col scanline">
+    <div className="h-screen bg-black flex flex-col scanline">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -468,6 +469,14 @@ function App() {
             isSending={isSending}
           />
         </div>
+
+        {/* User list panel */}
+        {selectedChannel && (
+          <UserListPanel
+            messages={channel.messages}
+            currentAddress={walletConfig.activeAddress}
+          />
+        )}
       </main>
 
       {/* Modals */}

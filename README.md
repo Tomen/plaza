@@ -2,6 +2,8 @@
 
 **🌐 Live Demo:** https://tomen.github.io/plaza-gossip/
 
+**WARNING: This solution is vibe coded and not considered safe for production use (although we do not suspect any issues). Use at your own risk and verify each transaction you sign!**
+
 A decentralized chat application with user profiles, multiple channels, and gasless messaging via delegated wallets. Built for Polkadot Asset Hub.
 
 ## Quick Start
