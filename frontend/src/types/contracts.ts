@@ -118,3 +118,18 @@ export interface VoteTally {
   downvotes: number;
   score: number;
 }
+
+// ============ ForumThread Types ============
+
+export interface ForumThread {
+  index: number;
+  author: string;
+  sender: string;
+  title: string;
+  content: string;
+  timestamp: number;
+  editedAt: number | null;
+  isDeleted: boolean;
+  tags: string[];
+  displayName?: string;
+}

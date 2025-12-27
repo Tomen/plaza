@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FormattedMessage } from '../types/contracts';
-import { truncateAddress, formatTimestamp } from '../utils/formatters';
+import type { FormattedMessage, Profile } from '../types/contracts';
+import type { Provider } from '../utils/contracts';
+import { formatTimestamp } from '../utils/formatters';
+import { UserLink } from './UserAddress';
 
 interface ChatFeedProps {
   messages: FormattedMessage[];
@@ -8,9 +10,34 @@ interface ChatFeedProps {
   currentAddress: string | null;
   currentUserDisplayName?: string | null;
   onSelectUser?: (address: string) => void;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  provider?: Provider | null;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
-export function ChatFeed({ messages, isLoading, currentAddress, currentUserDisplayName, onSelectUser }: ChatFeedProps) {
+export function ChatFeed({
+  messages,
+  isLoading,
+  currentAddress,
+  currentUserDisplayName,
+  onSelectUser,
+  getProfile,
+  provider,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
+}: ChatFeedProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
@@ -56,9 +83,9 @@ export function ChatFeed({ messages, isLoading, currentAddress, currentUserDispl
     <div className="flex-1 overflow-y-auto bg-black p-4 space-y-2">
       {messages.map((msg, index) => {
         const isCurrentUser = msg.profileOwner.toLowerCase() === currentAddress?.toLowerCase();
-        const displayIdentifier = isCurrentUser
-          ? (currentUserDisplayName || msg.displayName || truncateAddress(msg.profileOwner))
-          : (msg.displayName || truncateAddress(msg.profileOwner));
+        const displayName = isCurrentUser
+          ? (currentUserDisplayName || msg.displayName)
+          : msg.displayName;
         const isDelegate = msg.sender.toLowerCase() !== msg.profileOwner.toLowerCase();
 
         return (
@@ -67,13 +94,24 @@ export function ChatFeed({ messages, isLoading, currentAddress, currentUserDispl
               [ {formatTimestamp(msg.timestamp)} ]
             </span>
             {' '}
-            <button
-              onClick={() => onSelectUser?.(msg.profileOwner)}
-              className={`${isCurrentUser ? 'text-accent-400 font-semibold' : 'text-primary-500'} hover:underline cursor-pointer`}
-            >
-              {displayIdentifier}
-              {isDelegate && <span className="text-primary-700 text-xs ml-1">(via delegate)</span>}
-            </button>
+            {onSelectUser && (
+              <UserLink
+                address={msg.profileOwner}
+                displayName={displayName}
+                onSelectUser={onSelectUser}
+                isCurrentUser={isCurrentUser}
+                isDelegate={isDelegate}
+                getProfile={getProfile}
+                provider={provider}
+                onStartDM={onStartDM}
+                canSendDM={canSendDM}
+                onFollow={onFollow}
+                onUnfollow={onUnfollow}
+                isFollowing={isFollowing?.(msg.profileOwner)}
+                onTip={onTip}
+                canTip={canTip}
+              />
+            )}
             <span className="text-primary-600"> : </span>
             <span className="text-primary-300">{msg.content}</span>
           </div>

@@ -5,9 +5,10 @@ interface MessageInputProps {
   onSend: (message: string) => Promise<boolean>;
   disabled: boolean;
   isSending: boolean;
+  onConnectWallet?: () => void;
 }
 
-export function MessageInput({ onSend, disabled, isSending }: MessageInputProps) {
+export function MessageInput({ onSend, disabled, isSending, onConnectWallet }: MessageInputProps) {
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
@@ -28,6 +29,13 @@ export function MessageInput({ onSend, disabled, isSending }: MessageInputProps)
     }
   };
 
+  // Handle click on disabled input area - prompt wallet connection
+  const handleDisabledClick = () => {
+    if (disabled && onConnectWallet) {
+      onConnectWallet();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="border-t-2 border-primary-500 bg-black p-4">
       <div className="flex gap-2">
@@ -35,15 +43,26 @@ export function MessageInput({ onSend, disabled, isSending }: MessageInputProps)
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500 font-mono text-sm">
             &gt;
           </span>
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={disabled ? '[CONNECT WALLET TO TRANSMIT]' : '[ENTER MESSAGE]'}
-            disabled={disabled || isSending}
-            className="w-full pl-8 pr-4 py-3 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 disabled:shadow-none placeholder-primary-800 transition-all shadow-neon-input"
-            maxLength={500}
-          />
+          {disabled && onConnectWallet ? (
+            // Clickable overlay when disabled - triggers wallet connection
+            <button
+              type="button"
+              onClick={handleDisabledClick}
+              className="w-full pl-8 pr-4 py-3 bg-black border-2 border-primary-600 text-primary-600 font-mono text-sm text-left cursor-pointer hover:border-primary-500 hover:text-primary-500 transition-all"
+            >
+              [CONNECT WALLET TO POST]
+            </button>
+          ) : (
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={disabled ? '[CONNECT WALLET TO TRANSMIT]' : '[ENTER MESSAGE]'}
+              disabled={disabled || isSending}
+              className="w-full pl-8 pr-4 py-3 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 disabled:text-gray-600 disabled:shadow-none placeholder-primary-800 transition-all shadow-neon-input"
+              maxLength={500}
+            />
+          )}
         </div>
         <button
           type="submit"

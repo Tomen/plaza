@@ -11,6 +11,7 @@ interface ReplyThreadProps {
   votingAddress: string | null;
   userPostsAddress: string | null;
   postIndex: number;
+  entityType?: typeof EntityType[keyof typeof EntityType]; // Default: UserPost
   provider: Provider | null;
   signer?: Signer | null;
   currentAddress: string | null;
@@ -24,6 +25,7 @@ export function ReplyThread({
   votingAddress,
   userPostsAddress,
   postIndex,
+  entityType = EntityType.UserPost,
   provider,
   signer,
   currentAddress,
@@ -49,7 +51,7 @@ export function ReplyThread({
   } = useReplies({
     repliesAddress,
     parentContract: userPostsAddress,
-    entityType: EntityType.UserPost,
+    entityType,
     entityIndex: postIndex,
     provider,
     signer,

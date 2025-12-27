@@ -72,5 +72,5 @@ UserRegistry (profiles, delegates, session keys)
 ## Important Notes
 
 - Contract ABIs must be manually copied to `frontend/src/contracts/` after contract changes
-- `deployments.json` is created by deploy script; copy to `frontend/public/` for frontend
+- `deployments.json` is auto-copied to `frontend/public/` by deploy script
 - Frontend loads contract addresses from `deployments.json`; URL params override

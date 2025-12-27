@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { truncateAddress } from '../utils/formatters';
+import { AddressDisplay } from './UserAddress';
 import type { DecryptedMessage } from '../hooks/useDMConversation';
 
 interface DMConversationViewProps {
@@ -122,9 +123,9 @@ export function DMConversationView({
               {otherParticipantName || truncateAddress(otherParticipantAddress)}
             </h2>
             {otherParticipantName && (
-              <p className="text-primary-700 font-mono text-xs">
-                {truncateAddress(otherParticipantAddress)}
-              </p>
+              <div className="mt-0.5">
+                <AddressDisplay address={otherParticipantAddress} size="xs" />
+              </div>
             )}
           </div>
         </div>

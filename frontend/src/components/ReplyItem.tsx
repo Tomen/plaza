@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Reply, VoteType, VoteTally } from '../types/contracts';
 import { VotingWidget } from './VotingWidget';
-import { truncateAddress, formatTimestamp } from '../utils/formatters';
+import { UserLink } from './UserAddress';
+import { formatTimestamp } from '../utils/formatters';
 import toast from 'react-hot-toast';
 
 interface ReplyItemProps {
@@ -48,7 +49,6 @@ export function ReplyItem({
   const [isSaving, setIsSaving] = useState(false);
 
   const isOwner = currentAddress?.toLowerCase() === reply.profileOwner.toLowerCase();
-  const displayName = reply.displayName || truncateAddress(reply.profileOwner);
   const isDelegate = reply.sender.toLowerCase() !== reply.profileOwner.toLowerCase();
 
   const handleSaveEdit = async () => {
@@ -93,14 +93,14 @@ export function ReplyItem({
     <div className="py-2 pl-4 border-l-2 border-primary-700 hover:border-primary-500 transition-colors">
       {/* Header */}
       <div className="flex items-center gap-2 font-mono text-xs">
-        <button
-          onClick={() => onSelectUser?.(reply.profileOwner)}
-          className="text-primary-500 hover:text-primary-400 hover:underline"
-        >
-          {displayName}
-        </button>
-        {isDelegate && (
-          <span className="text-primary-700">(via delegate)</span>
+        {onSelectUser && (
+          <UserLink
+            address={reply.profileOwner}
+            displayName={reply.displayName}
+            onSelectUser={onSelectUser}
+            isDelegate={isDelegate}
+            size="xs"
+          />
         )}
         <span className="text-primary-600">
           {formatTimestamp(reply.timestamp)}

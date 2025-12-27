@@ -12,6 +12,9 @@
     "deploy": "hardhat run scripts/deploy.js",
     "deploy:localhost": "hardhat run scripts/deploy.js --network localhost",
     "deploy:polkadot": "hardhat run scripts/deploy.js --network polkadotAssetHub",
+    "seed": "hardhat run scripts/seed-test-data.js",
+    "seed:localhost": "hardhat run scripts/seed-test-data.js --network localhost",
+    "seed:polkadot": "hardhat run scripts/seed-test-data.js --network polkadotAssetHub",
     "node": "hardhat node"
   },
   "keywords": [],

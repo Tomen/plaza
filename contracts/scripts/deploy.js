@@ -21,7 +21,7 @@ async function main() {
   }
 
   // 1. Deploy UserRegistry
-  console.log("\n1/7 Deploying UserRegistry...");
+  console.log("\n1/8 Deploying UserRegistry...");
   const UserRegistry = await hre.ethers.getContractFactory("UserRegistry");
   const userRegistry = await UserRegistry.deploy();
   await userRegistry.waitForDeployment();
@@ -29,7 +29,7 @@ async function main() {
   console.log(`   ✅ UserRegistry deployed to: ${userRegistryAddress}`);
 
   // 2. Deploy ChannelRegistry
-  console.log("\n2/7 Deploying ChannelRegistry...");
+  console.log("\n2/8 Deploying ChannelRegistry...");
   const ChannelRegistry = await hre.ethers.getContractFactory("ChannelRegistry");
   const channelRegistry = await ChannelRegistry.deploy(userRegistryAddress);
   await channelRegistry.waitForDeployment();
@@ -37,7 +37,7 @@ async function main() {
   console.log(`   ✅ ChannelRegistry deployed to: ${channelRegistryAddress}`);
 
   // 3. Deploy DMRegistry
-  console.log("\n3/7 Deploying DMRegistry...");
+  console.log("\n3/8 Deploying DMRegistry...");
   const DMRegistry = await hre.ethers.getContractFactory("DMRegistry");
   const dmRegistry = await DMRegistry.deploy(userRegistryAddress);
   await dmRegistry.waitForDeployment();
@@ -45,7 +45,7 @@ async function main() {
   console.log(`   ✅ DMRegistry deployed to: ${dmRegistryAddress}`);
 
   // 4. Deploy FollowRegistry
-  console.log("\n4/7 Deploying FollowRegistry...");
+  console.log("\n4/8 Deploying FollowRegistry...");
   const FollowRegistry = await hre.ethers.getContractFactory("FollowRegistry");
   const followRegistry = await FollowRegistry.deploy(userRegistryAddress);
   await followRegistry.waitForDeployment();
@@ -53,7 +53,7 @@ async function main() {
   console.log(`   ✅ FollowRegistry deployed to: ${followRegistryAddress}`);
 
   // 5. Deploy Voting (shared voting system)
-  console.log("\n5/7 Deploying Voting...");
+  console.log("\n5/8 Deploying Voting...");
   const Voting = await hre.ethers.getContractFactory("Voting");
   const voting = await Voting.deploy(userRegistryAddress);
   await voting.waitForDeployment();
@@ -61,7 +61,7 @@ async function main() {
   console.log(`   ✅ Voting deployed to: ${votingAddress}`);
 
   // 6. Deploy Replies (shared reply system)
-  console.log("\n6/7 Deploying Replies...");
+  console.log("\n6/8 Deploying Replies...");
   const Replies = await hre.ethers.getContractFactory("Replies");
   const replies = await Replies.deploy(userRegistryAddress);
   await replies.waitForDeployment();
@@ -69,12 +69,20 @@ async function main() {
   console.log(`   ✅ Replies deployed to: ${repliesAddress}`);
 
   // 7. Deploy UserPosts (profile posts)
-  console.log("\n7/7 Deploying UserPosts...");
+  console.log("\n7/8 Deploying UserPosts...");
   const UserPosts = await hre.ethers.getContractFactory("UserPosts");
   const userPosts = await UserPosts.deploy(userRegistryAddress);
   await userPosts.waitForDeployment();
   const userPostsAddress = await userPosts.getAddress();
   console.log(`   ✅ UserPosts deployed to: ${userPostsAddress}`);
+
+  // 8. Deploy ForumThread (public discussion threads)
+  console.log("\n8/8 Deploying ForumThread...");
+  const ForumThread = await hre.ethers.getContractFactory("ForumThread");
+  const forumThread = await ForumThread.deploy(userRegistryAddress);
+  await forumThread.waitForDeployment();
+  const forumThreadAddress = await forumThread.getAddress();
+  console.log(`   ✅ ForumThread deployed to: ${forumThreadAddress}`);
 
   // Summary
   console.log("\n" + "=".repeat(60));
@@ -88,6 +96,7 @@ async function main() {
   console.log(`  Voting:          ${votingAddress}`);
   console.log(`  Replies:         ${repliesAddress}`);
   console.log(`  UserPosts:       ${userPostsAddress}`);
+  console.log(`  ForumThread:     ${forumThreadAddress}`);
   console.log("\nOpen the chat at:");
   console.log(`  http://localhost:5173/?registry=${channelRegistryAddress}`);
   console.log("\nNote: Create channels via the UI or register existing ones with migrate-channels.js");
@@ -140,6 +149,7 @@ async function main() {
     voting: votingAddress,
     replies: repliesAddress,
     userPosts: userPostsAddress,
+    forumThread: forumThreadAddress,
     deployedAt: new Date().toISOString(),
   };
 
@@ -148,6 +158,11 @@ async function main() {
   console.log(`\n✅ Deployment info saved to: deployments.json`);
   console.log(`   Network: ${networkName}`);
   console.log(`   Chain ID: ${chainId}`);
+
+  // Copy to frontend/public for the app to use
+  const frontendDeploymentsPath = path.join(__dirname, "../../frontend/public/deployments.json");
+  fs.writeFileSync(frontendDeploymentsPath, JSON.stringify(deployments, null, 2));
+  console.log(`\n✅ Copied to frontend: frontend/public/deployments.json`);
 }
 
 main()

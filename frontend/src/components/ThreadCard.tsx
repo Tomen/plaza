@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { UserPost, VoteType, VoteTally } from '../types/contracts';
+import type { ForumThread, VoteType, VoteTally } from '../types/contracts';
 import { VotingWidget } from './VotingWidget';
 import { ReplyThread } from './ReplyThread';
 import { UserLink } from './UserAddress';
@@ -8,9 +8,9 @@ import type { Provider, Signer } from '../utils/contracts';
 import { EntityType } from '../hooks/useVoting';
 import toast from 'react-hot-toast';
 
-interface PostCardProps {
-  post: UserPost;
-  userPostsAddress: string | null;
+interface ThreadCardProps {
+  thread: ForumThread;
+  forumThreadAddress: string | null;
   repliesAddress: string | null;
   votingAddress: string | null;
   provider: Provider | null;
@@ -24,17 +24,18 @@ interface PostCardProps {
   removeVote: (entityId: string) => Promise<void>;
   isVoting: boolean;
   // Actions
-  onEdit?: (postIndex: number, newContent: string) => Promise<void>;
-  onDelete?: (postIndex: number) => Promise<void>;
+  onEdit?: (threadIndex: number, newContent: string) => Promise<void>;
+  onDelete?: (threadIndex: number) => Promise<void>;
   onSelectUser?: (address: string) => void;
+  onSelectThread?: (threadIndex: number) => void;
   getDisplayName?: (address: string) => Promise<string>;
   disabled?: boolean;
+  expanded?: boolean;
 }
 
-
-export function PostCard({
-  post,
-  userPostsAddress,
+export function ThreadCard({
+  thread,
+  forumThreadAddress,
   repliesAddress,
   votingAddress,
   provider,
@@ -49,29 +50,31 @@ export function PostCard({
   onEdit,
   onDelete,
   onSelectUser,
+  onSelectThread,
   getDisplayName,
   disabled = false,
-}: PostCardProps) {
+  expanded = false,
+}: ThreadCardProps) {
   const [entityId, setEntityId] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(post.content);
+  const [editContent, setEditContent] = useState(thread.content);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showReplies, setShowReplies] = useState(false);
+  const [showReplies, setShowReplies] = useState(expanded);
 
-  const isOwner = currentAddress?.toLowerCase() === post.profileOwner.toLowerCase();
-  const isDelegate = post.sender.toLowerCase() !== post.profileOwner.toLowerCase();
+  const isOwner = currentAddress?.toLowerCase() === thread.author.toLowerCase();
+  const isDelegate = thread.sender.toLowerCase() !== thread.author.toLowerCase();
 
   // Compute entity ID for voting
   const loadEntityId = useCallback(async () => {
-    if (!userPostsAddress) return;
+    if (!forumThreadAddress) return;
     try {
-      const id = await computeEntityId(userPostsAddress, EntityType.UserPost, post.index);
+      const id = await computeEntityId(forumThreadAddress, EntityType.ForumThread, thread.index);
       setEntityId(id);
     } catch (err) {
       console.error('Failed to compute entity ID:', err);
     }
-  }, [userPostsAddress, post.index, computeEntityId]);
+  }, [forumThreadAddress, thread.index, computeEntityId]);
 
   useEffect(() => {
     loadEntityId();
@@ -82,12 +85,12 @@ export function PostCard({
 
     setIsSaving(true);
     try {
-      await onEdit?.(post.index, editContent);
+      await onEdit?.(thread.index, editContent);
       setIsEditing(false);
-      toast.success('Post updated');
+      toast.success('Thread updated');
     } catch (error) {
-      console.error('Failed to edit post:', error);
-      toast.error('Failed to update post');
+      console.error('Failed to edit thread:', error);
+      toast.error('Failed to update thread');
     } finally {
       setIsSaving(false);
     }
@@ -98,43 +101,51 @@ export function PostCard({
 
     setIsDeleting(true);
     try {
-      await onDelete?.(post.index);
-      toast.success('Post deleted');
+      await onDelete?.(thread.index);
+      toast.success('Thread deleted');
     } catch (error) {
-      console.error('Failed to delete post:', error);
-      toast.error('Failed to delete post');
+      console.error('Failed to delete thread:', error);
+      toast.error('Failed to delete thread');
       setIsDeleting(false);
     }
   };
 
-  if (post.isDeleted) {
+  if (thread.isDeleted) {
     return (
       <div className="border border-primary-800 bg-black p-4 font-mono">
-        <span className="text-primary-700 italic">[POST DELETED]</span>
+        <span className="text-primary-700 italic">[THREAD DELETED]</span>
       </div>
     );
   }
 
   return (
     <div className="border border-primary-700 bg-black p-4 hover:border-primary-500 transition-colors">
+      {/* Title */}
+      <h3
+        className={`text-lg font-mono text-primary-300 mb-2 ${onSelectThread ? 'cursor-pointer hover:text-primary-200' : ''}`}
+        onClick={() => onSelectThread?.(thread.index)}
+      >
+        {thread.title}
+      </h3>
+
       {/* Header */}
       <div className="flex items-center gap-2 font-mono text-xs mb-3">
         {onSelectUser && (
           <UserLink
-            address={post.profileOwner}
-            displayName={post.displayName}
+            address={thread.author}
+            displayName={thread.displayName}
             onSelectUser={onSelectUser}
             isDelegate={isDelegate}
             size="xs"
           />
         )}
         <span className="text-primary-600">
-          {formatTimestamp(post.timestamp)}
+          {formatTimestamp(thread.timestamp)}
         </span>
-        {post.editedAt && (
+        {thread.editedAt && (
           <span className="text-primary-700 italic">(edited)</span>
         )}
-        <span className="text-primary-700 ml-auto">#{post.index}</span>
+        <span className="text-primary-700 ml-auto">#{thread.index}</span>
       </div>
 
       {/* Content or Edit Form */}
@@ -143,8 +154,8 @@ export function PostCard({
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full min-h-[80px] px-3 py-2 bg-black border border-primary-600 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 resize-y"
-            maxLength={2000}
+            className="w-full min-h-[120px] px-3 py-2 bg-black border border-primary-600 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 resize-y"
+            maxLength={10000}
             disabled={isSaving}
           />
           <div className="mt-2 flex gap-2">
@@ -158,7 +169,7 @@ export function PostCard({
             <button
               onClick={() => {
                 setIsEditing(false);
-                setEditContent(post.content);
+                setEditContent(thread.content);
               }}
               disabled={isSaving}
               className="px-4 py-1.5 text-xs font-mono text-primary-600 border border-primary-700 hover:border-primary-500"
@@ -168,9 +179,28 @@ export function PostCard({
           </div>
         </div>
       ) : (
-        <div className="text-sm text-primary-300 font-mono whitespace-pre-wrap mb-4">
-          {post.content}
-        </div>
+        <>
+          <div className="text-sm text-primary-300 font-mono whitespace-pre-wrap mb-3">
+            {expanded ? thread.content : (
+              thread.content.length > 300
+                ? thread.content.slice(0, 300) + '...'
+                : thread.content
+            )}
+          </div>
+          {/* Tags */}
+          {thread.tags && thread.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {thread.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-block px-2 py-0.5 text-xs font-mono bg-primary-900 text-primary-500 border border-primary-700"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Actions Row */}
@@ -198,6 +228,16 @@ export function PostCard({
             {showReplies ? '[-] HIDE REPLIES' : '[+] REPLIES'}
           </button>
 
+          {/* Read more / expand */}
+          {!expanded && thread.content.length > 300 && onSelectThread && (
+            <button
+              onClick={() => onSelectThread(thread.index)}
+              className="text-xs font-mono text-primary-500 hover:text-primary-400"
+            >
+              READ MORE
+            </button>
+          )}
+
           {/* Edit/Delete for owner */}
           {isOwner && !disabled && (
             <>
@@ -220,12 +260,13 @@ export function PostCard({
       )}
 
       {/* Reply Thread */}
-      {showReplies && (
+      {showReplies && forumThreadAddress && (
         <ReplyThread
           repliesAddress={repliesAddress}
           votingAddress={votingAddress}
-          userPostsAddress={userPostsAddress}
-          postIndex={post.index}
+          userPostsAddress={forumThreadAddress}
+          postIndex={thread.index}
+          entityType={EntityType.ForumThread}
           provider={provider}
           signer={signer}
           currentAddress={currentAddress}

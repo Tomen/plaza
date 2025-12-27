@@ -65,6 +65,24 @@ contract UserRegistry {
         _;
     }
 
+    // ============ Internal Helpers ============
+
+    /// @dev Resolves msg.sender to profile owner (supports delegates)
+    function _resolveSender() internal view returns (address) {
+        address owner = delegateToOwner[msg.sender];
+        if (owner != address(0)) {
+            return owner;
+        }
+        return msg.sender;
+    }
+
+    /// @dev Requires sender to be owner or delegate of an existing profile
+    function _requireOwnerOrDelegate() internal view returns (address) {
+        address owner = _resolveSender();
+        require(profiles[owner].exists, "Profile does not exist");
+        return owner;
+    }
+
     // ============ Profile Management ============
 
     function createProfile(
@@ -131,33 +149,37 @@ contract UserRegistry {
     }
 
     // ============ Links Management ============
+    // Note: Link operations support delegates for gasless UX
 
-    function addLink(string calldata name, string calldata url) external onlyProfileOwner {
+    function addLink(string calldata name, string calldata url) external {
+        address owner = _requireOwnerOrDelegate();
         require(bytes(name).length > 0, "Link name required");
         require(bytes(name).length <= 50, "Link name too long");
         require(bytes(url).length > 0, "Link URL required");
         require(bytes(url).length <= 200, "Link URL too long");
-        require(profileLinks[msg.sender].length < 10, "Max 10 links");
+        require(profileLinks[owner].length < 10, "Max 10 links");
 
-        uint256 index = profileLinks[msg.sender].length;
-        profileLinks[msg.sender].push(Link({name: name, url: url}));
-        emit LinkAdded(msg.sender, index, name, url);
+        uint256 index = profileLinks[owner].length;
+        profileLinks[owner].push(Link({name: name, url: url}));
+        emit LinkAdded(owner, index, name, url);
     }
 
-    function removeLink(uint256 index) external onlyProfileOwner {
-        Link[] storage links = profileLinks[msg.sender];
+    function removeLink(uint256 index) external {
+        address owner = _requireOwnerOrDelegate();
+        Link[] storage links = profileLinks[owner];
         require(index < links.length, "Index out of bounds");
 
         // Move last element to deleted position, then pop
         links[index] = links[links.length - 1];
         links.pop();
 
-        emit LinkRemoved(msg.sender, index);
+        emit LinkRemoved(owner, index);
     }
 
-    function clearLinks() external onlyProfileOwner {
-        delete profileLinks[msg.sender];
-        emit LinksCleared(msg.sender);
+    function clearLinks() external {
+        address owner = _requireOwnerOrDelegate();
+        delete profileLinks[owner];
+        emit LinksCleared(owner);
     }
 
     function getLinks(address owner) external view returns (Link[] memory) {

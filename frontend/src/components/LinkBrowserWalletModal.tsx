@@ -112,7 +112,7 @@ export function LinkBrowserWalletModal({
         <div className="mb-4 p-3 border border-accent-700 bg-accent-950 bg-opacity-20">
           <div className="font-mono text-xs space-y-1">
             <div className="flex justify-between">
-              <span className="text-accent-400">IN-APP:</span>
+              <span className="text-accent-400">SESSION:</span>
               <span className="text-accent-600">
                 {truncateAddress(inAppAddress)}
                 {inAppHasProfile && <span className="text-green-500 ml-2">has profile</span>}
@@ -149,7 +149,7 @@ export function LinkBrowserWalletModal({
                   <span className="text-yellow-500 text-lg">!</span>
                   <div className="font-mono text-xs text-yellow-600">
                     <p className="font-bold text-yellow-500 mb-1">Both wallets have profiles!</p>
-                    <p>Your browser wallet already has a profile. If you switch, your in-app wallet profile will be abandoned (it stays on-chain but won't be used).</p>
+                    <p>Your browser wallet already has a profile. If you switch, your session account profile will be abandoned (it stays on-chain but won't be used).</p>
                   </div>
                 </div>
               </div>
@@ -189,7 +189,7 @@ export function LinkBrowserWalletModal({
                           className="w-4 h-4 accent-yellow-500"
                         />
                         <span className="font-mono text-xs text-yellow-500">
-                          I understand my in-app profile will be abandoned
+                          I understand my session account profile will be abandoned
                         </span>
                       </label>
                     )}
@@ -228,7 +228,7 @@ export function LinkBrowserWalletModal({
                       </span>
                     </div>
                     <p className="font-mono text-xs text-green-600 mt-1">
-                      Move your profile to the browser wallet. More secure for long-term use. In-app wallet will become a delegate.
+                      Move your profile to the browser wallet. More secure for long-term use. Session account will become a delegate.
                     </p>
                   </div>
                   {action === 'transfer' && (
@@ -256,7 +256,7 @@ export function LinkBrowserWalletModal({
                       ADD AS DELEGATE
                     </h3>
                     <p className="font-mono text-xs text-primary-600 mt-1">
-                      Browser wallet can post on behalf of your in-app profile. Both profiles continue to exist separately.
+                      Browser wallet can post on behalf of your session account profile. Both profiles continue to exist separately.
                     </p>
                   </div>
                   {action === 'delegate' && (

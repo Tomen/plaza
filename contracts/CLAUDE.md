@@ -9,6 +9,8 @@ npm test                    # Run all tests (Hardhat + Chai)
 npm run compile             # Compile Solidity contracts
 npm run deploy:localhost    # Deploy to local Hardhat node
 npm run deploy:polkadot     # Deploy to Polkadot Asset Hub testnet
+npm run seed:localhost      # Seed test data to local node
+npm run seed:polkadot       # Seed test data to testnet
 npm run node                # Start local Hardhat node
 ```
 
@@ -41,6 +43,7 @@ UserRegistry (profiles, delegates, session public keys for ECDH)
 - Delegate authorization: `addDelegate(address)` / `removeDelegate(address)`
 - Session keys (ECDH): `setSessionPublicKey(bytes)`, `getSessionPublicKey(address)`
 - Key functions: `resolveToOwner(address)`, `canActAs(actor, owner)`
+- Link operations (`addLink`, `removeLink`, `clearLinks`) support delegates for gasless UX
 
 ### ChatChannel.sol
 - Two posting modes: `Open` (anyone), `Permissioned` (allowlisted)
@@ -86,8 +89,26 @@ UserRegistry (profiles, delegates, session public keys for ECDH)
 
 1. Set `SEED_PHRASE` or `PRIVATE_KEY` in `.env`
 2. Run `npm run deploy:polkadot` (or `deploy:localhost`)
-3. Addresses saved to `deployments.json` in project root
-4. Copy to `frontend/public/deployments.json` for frontend to load
+3. Addresses saved to `deployments.json` and auto-copied to `frontend/public/deployments.json`
+
+## Seeding Test Data
+
+After deployment, populate contracts with demo data using `seed-test-data.js`:
+
+```bash
+npm run seed:localhost      # Seed local Hardhat node
+npm run seed:polkadot       # Seed Polkadot testnet
+```
+
+Creates:
+- 5 user profiles (Alice, Bob, Charlie, Diana, Eve) with bios and links
+- 3 chat channels with ~19 messages
+- 8 forum threads (2 per category)
+- 15 user posts
+- Replies and votes on posts/threads
+- Follow relationships between users
+
+The script is idempotent - it skips already-created profiles and follows.
 
 ## Testing
 

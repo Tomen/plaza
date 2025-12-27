@@ -120,20 +120,26 @@ export function useAppWallet({
 
       // If we have a wallet for this user, load it
       // Authorization will be verified on-chain by checkAuthorization()
+      let wallet: ethers.Wallet;
       if (stored && isWalletAuthorizedFor(userAddress)) {
-        const wallet = new ethers.Wallet(stored.privateKey);
-        setAppWallet(wallet);
+        wallet = new ethers.Wallet(stored.privateKey);
       } else {
         // Create a new wallet but don't save yet
-        const wallet = getOrCreateAppWallet(userAddress);
-        setAppWallet(wallet);
+        wallet = getOrCreateAppWallet(userAddress);
       }
+
+      // Connect wallet to provider if available (needed for sendTransaction)
+      if (provider) {
+        wallet = wallet.connect(provider);
+      }
+
+      setAppWallet(wallet);
       setWalletState('ready');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize wallet');
       setWalletState('error');
     }
-  }, [userAddress]);
+  }, [userAddress, provider]);
 
   // Load existing wallet on mount (browser mode only)
   useEffect(() => {

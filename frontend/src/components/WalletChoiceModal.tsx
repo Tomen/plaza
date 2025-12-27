@@ -3,6 +3,7 @@ interface WalletChoiceModalProps {
   onSelectBrowser: () => void;
   onSelectInApp: () => void;
   hasMetaMask: boolean;
+  onClose?: () => void;
 }
 
 export function WalletChoiceModal({
@@ -10,18 +11,33 @@ export function WalletChoiceModal({
   onSelectBrowser,
   onSelectInApp,
   hasMetaMask,
+  onClose,
 }: WalletChoiceModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-90" />
+      {/* Backdrop - click to close */}
+      <div
+        className="absolute inset-0 bg-black/75"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-primary-500 bg-black p-6">
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-primary-600 hover:text-primary-400 text-xl font-mono transition-colors"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        )}
+
         <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-2 font-mono text-center">
-          ▄▄▄ CONNECT TO CHAT ▄▄▄
+          ▄▄▄ CONNECT WALLET ▄▄▄
         </h2>
         <p className="text-primary-600 font-mono text-sm text-center mb-4">
           Choose how you want to connect
@@ -72,7 +88,7 @@ export function WalletChoiceModal({
             </div>
           </button>
 
-          {/* In-App Wallet Option */}
+          {/* Session Account Option */}
           <button
             onClick={onSelectInApp}
             className="w-full p-4 bg-primary-950 bg-opacity-20 border-2 border-primary-500 hover:bg-primary-950 hover:bg-opacity-40 text-left transition-all"
@@ -81,7 +97,7 @@ export function WalletChoiceModal({
               <div className="text-3xl">🔐</div>
               <div className="flex-1">
                 <h3 className="font-mono font-bold text-primary-400">
-                  IN-APP WALLET
+                  SESSION ACCOUNT
                 </h3>
                 <p className="font-mono text-xs text-primary-600 mt-1">
                   We'll create a wallet for you in the browser
@@ -99,7 +115,7 @@ export function WalletChoiceModal({
           <div className="flex items-start gap-2">
             <span className="text-yellow-500">!</span>
             <div className="font-mono text-xs text-yellow-600">
-              <p><strong className="text-yellow-500">IN-APP WALLET:</strong> Quick setup, but you'll need to fund it via faucet to post messages.</p>
+              <p><strong className="text-yellow-500">SESSION ACCOUNT:</strong> Quick setup, but you'll need to fund it via faucet to post messages.</p>
               <p className="mt-1"><strong className="text-yellow-500">BROWSER WALLET:</strong> More secure, uses your existing wallet.</p>
             </div>
           </div>

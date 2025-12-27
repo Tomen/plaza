@@ -1,26 +1,56 @@
 # User Flows
 
-This document describes the wallet connection and user flows for the On-Chain Chat application.
+This document describes the wallet connection and user flows for the Plaza application.
 
 > **See also:** [Architecture Documentation](./architecture.md) for technical details on hooks, state management, and common pitfalls.
 
 ## Overview
 
-The app supports two wallet modes:
+The app supports **guest browsing** - users can view all public content without connecting a wallet. Wallet connection is only required for write actions (posting messages, creating channels, sending DMs, etc.).
+
+When connected, the app supports two wallet modes:
 - **Browser Wallet**: Uses MetaMask or other injected wallet providers
-- **In-App Wallet**: Creates a wallet stored in localStorage (no browser extension required)
+- **Session Account**: Creates a wallet stored in localStorage (no browser extension required)
 
 ---
 
-## Flow 1: New User with In-App Wallet
+## Flow 0: Guest Browsing (No Wallet)
 
-For users who don't have MetaMask or prefer not to use it.
+For users who want to explore the app before connecting.
 
 ```
-1. User opens app (first visit, no existing wallet)
+1. User opens app (first visit)
+2. App loads immediately - no wallet modal appears
+3. User can:
+   - View all channels in sidebar
+   - Read messages in any channel
+   - View user profiles
+   - Browse the app freely
+4. When user tries to:
+   - Post a message (clicks input or types)
+   - Create a channel (clicks "+ New Channel")
+   - Start a DM (clicks "+ New DM")
+5. WalletChoiceModal appears
+6. User chooses wallet type and continues
+```
+
+**Key implementation:**
+- `walletConfig.canRead` is always true (uses RPC provider)
+- `walletConfig.canWrite` requires connected wallet
+- `requireWallet()` callback triggers modal on write actions
+- Read hooks enabled without wallet (just need registry address)
+
+---
+
+## Flow 1: New User with Session Account
+
+For users who don't have MetaMask or prefer not to use it. Users start from guest browsing and connect when needed.
+
+```
+1. User browses as guest, then tries to post/create
 2. WalletChoiceModal appears
-3. User clicks "In-App Wallet"
-4. InAppWalletSetup modal appears showing:
+3. User clicks "Session Account"
+4. SessionAccountSetup modal appears showing:
    - Generated wallet address (copyable)
    - Current balance (starts at 0)
    - Faucet instructions with link to https://faucet.polkadot.io/?parachain=1111
@@ -35,7 +65,7 @@ For users who don't have MetaMask or prefer not to use it.
 
 **Key files:**
 - `WalletChoiceModal.tsx` - Initial wallet selection
-- `InAppWalletSetup.tsx` - Faucet instructions and balance check
+- `SessionAccountSetup.tsx` - Faucet instructions and balance check
 - `useAppWallet.ts` - Standalone wallet management
 - `utils/appWallet.ts` - localStorage wallet storage
 
@@ -43,10 +73,10 @@ For users who don't have MetaMask or prefer not to use it.
 
 ## Flow 2: New User with Browser Wallet
 
-For users with MetaMask or similar browser extension.
+For users with MetaMask or similar browser extension. Users start from guest browsing and connect when needed.
 
 ```
-1. User opens app (first visit)
+1. User browses as guest, then tries to post/create
 2. WalletChoiceModal appears
 3. User clicks "Browser Wallet"
 4. MetaMask popup appears for connection approval
@@ -59,9 +89,9 @@ For users with MetaMask or similar browser extension.
 
 **Optional gasless messaging setup:**
 ```
-10. User opens Account Modal
-11. User sees "Set up in-app wallet for gasless messaging" section
-12. User clicks "Setup In-App Wallet"
+10. User opens Settings
+11. User sees "Set up session account for gasless messaging" section
+12. User clicks "Setup Session Account"
 13. App creates delegate wallet and registers it on-chain
 14. User funds the delegate wallet
 15. Future messages are sent via delegate (no MetaMask popups)
@@ -69,9 +99,9 @@ For users with MetaMask or similar browser extension.
 
 ---
 
-## Flow 3: Returning User with Existing In-App Wallet
+## Flow 3: Returning User with Existing Session Account
 
-For users who previously created an in-app wallet.
+For users who previously created a session account.
 
 ```
 1. User opens app
@@ -87,12 +117,12 @@ For users who previously created an in-app wallet.
 
 ---
 
-## Flow 4: In-App User Links Browser Wallet
+## Flow 4: Session Account User Links Browser Wallet
 
-For users who started with in-app wallet but want to use their browser wallet.
+For users who started with session account but want to use their browser wallet.
 
 ```
-1. User is in standalone mode with in-app wallet + profile
+1. User is in standalone mode with session account + profile
 2. User opens Account Modal
 3. User clicks "Connect Browser Wallet"
 4. MetaMask popup appears
@@ -100,14 +130,14 @@ For users who started with in-app wallet but want to use their browser wallet.
 6. LinkBrowserWalletModal appears with two options:
 
    Option A - Add as Delegate:
-   - Browser wallet is added as delegate for in-app profile
+   - Browser wallet is added as delegate for session account profile
    - User stays in standalone mode
-   - Browser wallet can post on behalf of in-app profile
+   - Browser wallet can post on behalf of session account profile
 
    Option B - Transfer Ownership (Recommended):
    - Profile ownership transfers to browser wallet
    - All profile data (name, bio, links) moves to browser wallet
-   - In-app wallet profile is deleted
+   - Session account profile is deleted
    - User switches to browser mode
    - Profile is refreshed to show under browser wallet
 ```
@@ -134,9 +164,9 @@ For users who started with in-app wallet but want to use their browser wallet.
 ```
 
 **Note:**
-- Disconnecting preserves the in-app wallet in localStorage but persists the disconnected state
+- Disconnecting preserves the session account in localStorage but persists the disconnected state
 - Page refresh keeps user disconnected (wallet mode stored in localStorage)
-- When user selects "In-App Wallet" again, they get the same wallet back with their funds intact
+- When user selects "Session Account" again, they get the same wallet back with their funds intact
 - To permanently delete a standalone wallet, use `appWallet.deleteStandaloneWallet()` (not yet exposed in UI)
 
 ---
@@ -145,12 +175,13 @@ For users who started with in-app wallet but want to use their browser wallet.
 
 When a user posts a message without an existing profile.
 
-**Note:** Standalone (in-app wallet) users get their profile auto-created immediately after wallet setup (see Flow 1). This flow primarily applies to browser wallet users who send a message before creating a profile via AccountModal.
+**Note:** Users must be connected first (see Flow 0). Standalone (in-app wallet) users get their profile auto-created immediately after wallet setup (see Flow 1). This flow primarily applies to browser wallet users who send a message before creating a profile via AccountModal.
 
 ```
-1. User clicks send on a message
-2. handleSendMessage checks if profile exists
-3. If no profile:
+1. User is connected and clicks send on a message
+2. handleSendMessage checks if wallet is connected (requireWallet)
+3. handleSendMessage checks if profile exists
+4. If no profile:
    a. Toast shows "Creating profile..."
    b. createDefaultProfile() is called on UserRegistry contract
    c. Profile is created with display name = "0x" + first 8 hex chars of address
@@ -178,7 +209,7 @@ function createDefaultProfile() external {
 
 ## Flow 7: Export Private Key
 
-For in-app wallet users who want to backup their wallet.
+For session account users who want to backup their wallet.
 
 ```
 1. User is in standalone mode
@@ -328,6 +359,28 @@ When clicking a user's name in chat or user list.
 
 ---
 
+## DM Requirements
+
+Direct Messages use end-to-end encryption (ECDH + AES-256-GCM). For DMs to work, **both parties** must meet requirements:
+
+| Requirement | Current User | Target User |
+|-------------|--------------|-------------|
+| Has profile | Must have created on-chain profile | Must have created on-chain profile |
+| Has session key | Must have session key in localStorage AND on-chain | Must have session key published on-chain |
+
+**"Send DM" Button States:**
+- **Enabled**: Both users meet all requirements
+- **Disabled (gray)**: One or more requirements not met
+  - Tooltip: "Both users need a profile to send DMs"
+
+**Key files:**
+- `UserProfileModal.tsx` - Button in popup profile overlay
+- `ProfileView.tsx` - Button in full profile view
+- `useUserRegistry.ts` - `hasSessionPublicKey()` function
+- `UserRegistry.sol` - On-chain session key storage
+
+---
+
 ## Channel Types
 
 | Type | Posting | Registry | Access |
@@ -362,7 +415,7 @@ When clicking a user's name in chat or user list.
 | Component | Purpose |
 |-----------|---------|
 | `WalletChoiceModal` | Initial wallet type selection |
-| `InAppWalletSetup` | Faucet instructions + funding check |
+| `SessionAccountSetup` | Faucet instructions + funding check |
 | `AccountModal` | Profile management, wallet info, disconnect |
 | `AccountButton` | Header button showing connection status |
 | `LinkBrowserWalletModal` | Options when browser wallet connects in standalone mode |
@@ -375,7 +428,7 @@ When clicking a user's name in chat or user list.
 | Hook | Purpose |
 |------|---------|
 | `useWallet` | Browser wallet connection (MetaMask). Returns `isInitialized` to indicate initial connection check is complete. |
-| `useAppWallet` | In-app wallet management (both modes) |
+| `useAppWallet` | Session account wallet management (both modes) |
 | `useUserRegistry` | Profile CRUD, delegate management |
 | `useChannelRegistry` | Channel listing, creation, and unlisted channel deployment |
 | `useChannel` | Message posting, loading, and moderation functions |
@@ -391,20 +444,20 @@ When clicking a user's name in chat or user list.
 | Balance shows 0 during setup | `provider` prop is null before mode changes | Use `appWallet.provider` (connected during init) |
 | Balance shows 0 after connect | Wrong provider passed to hook | Ensure `walletConfig.activeProvider` is used |
 | "Contract not available" | `getSigner()` called on JsonRpcProvider | Use `createWriteContract()` with external signer |
-| "no such account" | Signer not connected to provider | Check `walletConfig.isReady` before operations |
+| "no such account" | Signer not connected to provider | Check `walletConfig.canWrite` before write operations |
 | Profile disappears after transfer | Profile not refreshed | Add useEffect to refresh on mode change |
 | Modal behind modal | Parent modal not closed | Close parent modal before opening child |
 | Infinite re-renders | Hook object in useEffect deps | Only depend on primitive values, not whole hook return |
-| WalletChoiceModal shows on reload | Effect fires before MetaMask auto-connects | Check `browserWallet.isInitialized` before showing modal |
+| Can't post messages | Wallet not connected | Click message input to trigger wallet connection |
 
 ### Debug Checklist
 
 1. **Check wallet mode**: Is `walletMode` correct for the current state?
-2. **Check isReady**: Is `walletConfig.isReady` true before attempting operations?
-3. **Check isInitialized**: Is `browserWallet.isInitialized` true before showing connection modals?
-4. **Check provider type**: Is the provider `BrowserProvider` or `JsonRpcProvider`?
-5. **Check signer**: Is `walletConfig.activeSigner` passed to hooks in standalone mode?
-6. **Check dependencies**: Are useEffect dependencies causing infinite loops?
+2. **Check canRead/canWrite**: Is `walletConfig.canRead` true for reading? Is `walletConfig.canWrite` true for write operations?
+3. **Check provider**: Is `walletConfig.activeProvider` available? (Should always be - uses RPC)
+4. **Check signer**: Is `walletConfig.signer` available for write operations?
+5. **Check dependencies**: Are useEffect dependencies causing infinite loops?
+6. **Guest mode**: Remember users can browse without wallet - check `requireWallet()` for writes
 
 ### Console Debugging
 
@@ -414,11 +467,11 @@ Add this to App.tsx temporarily to debug state:
 useEffect(() => {
   console.log('Wallet State:', {
     mode: walletMode,
-    isReady: walletConfig.isReady,
-    isInitialized: browserWallet.isInitialized,
+    canRead: walletConfig.canRead,
+    canWrite: walletConfig.canWrite,
     activeAddress: walletConfig.activeAddress,
-    hasSigner: !!walletConfig.activeSigner,
+    hasSigner: !!walletConfig.signer,
     providerType: walletConfig.activeProvider?.constructor.name,
   });
-}, [walletMode, walletConfig, browserWallet.isInitialized]);
+}, [walletMode, walletConfig]);
 ```

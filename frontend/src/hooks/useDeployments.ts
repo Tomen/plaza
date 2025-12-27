@@ -11,6 +11,7 @@ interface NetworkDeployment {
   voting?: string;
   replies?: string;
   userPosts?: string;
+  forumThread?: string;
   channels?: {
     general?: string;
   };

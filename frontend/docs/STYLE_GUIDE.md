@@ -514,6 +514,39 @@ Semantic colors are allowed and encouraged for status indicators. Use `border` (
 </div>
 ```
 
+### Tooltips
+
+For styled tooltips that match the terminal aesthetic (use instead of native `title` attribute):
+
+```tsx
+// Tooltip wrapper pattern (CSS-only, uses group hover)
+<div className="relative group">
+  <button disabled={isDisabled}>
+    BUTTON TEXT
+  </button>
+  {isDisabled && (
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black border border-primary-700 text-primary-500 font-mono text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+      Tooltip message here
+      {/* Arrow pointing down */}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-700" />
+    </div>
+  )}
+</div>
+```
+
+**Key classes:**
+- `relative group` on wrapper - enables group-hover behavior
+- `absolute bottom-full` - positions tooltip above element
+- `left-1/2 -translate-x-1/2` - centers horizontally
+- `mb-2` - gap between tooltip and element
+- `opacity-0 group-hover:opacity-100` - show on hover
+- `transition-opacity` - smooth fade in/out
+- `pointer-events-none` - prevents tooltip from blocking clicks
+- `z-10` - ensures tooltip appears above other elements
+- `whitespace-nowrap` - keeps tooltip on single line
+
+**Arrow:** The downward-pointing arrow uses CSS border trick with `border-t-primary-700` matching the tooltip border color.
+
 ### Option Cards
 
 ```tsx
@@ -594,6 +627,56 @@ The standard pattern for message/chat inputs with send functionality:
 **Status indicators by context:**
 - `[BLOCKCHAIN STORAGE ACTIVE]` - Channel messages
 - `[ENCRYPTED MESSAGE]` - Direct messages
+
+### User Address Display
+
+Use the unified `UserAddress` components for displaying user profiles and addresses consistently.
+
+**UserLink** - Clickable profile opener (for showing "who did something"):
+
+```tsx
+import { UserLink } from './UserAddress';
+
+// Message author - clicking opens their profile
+<UserLink
+  address={msg.profileOwner}
+  displayName={msg.displayName}
+  onSelectUser={openProfile}
+  isCurrentUser={isCurrentUser}  // Accent color if true
+  isDelegate={isDelegate}        // Shows "(via delegate)"
+  size="sm"                      // 'xs' | 'sm'
+/>
+```
+
+**Behavior:**
+- Shows displayName or truncated address
+- Hover: tooltip with full address
+- Click: calls `onSelectUser(address)` to open profile
+- Current user gets `text-accent-400` styling
+
+**AddressDisplay** - Informational address with copy-on-click:
+
+```tsx
+import { AddressDisplay } from './UserAddress';
+
+// Settings, profile headers - click to copy
+<AddressDisplay
+  address={walletAddress}
+  displayName={displayName}     // Optional
+  showBoth={true}               // Show name + address
+  size="sm"                     // 'xs' | 'sm'
+/>
+```
+
+**Behavior:**
+- Click: copies full address to clipboard
+- Shows "✓ Copied!" feedback for 2 seconds
+- `showBoth`: displays name on top, address below
+
+**When to use which:**
+- **UserLink**: Showing who did something (message authors, post authors, reply authors)
+- **AddressDisplay**: Showing addresses for informational purposes (settings, profile headers)
+- **Neither**: Navigation elements (sidebar, DM list) - keep using inline patterns
 
 ---
 

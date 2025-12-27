@@ -2,7 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { formatEther } from 'ethers';
 
-interface InAppWalletSetupProps {
+interface SessionAccountSetupProps {
   isOpen: boolean;
   walletAddress: string;
   balance: bigint;
@@ -11,14 +11,14 @@ interface InAppWalletSetupProps {
   onBack: () => void;
 }
 
-export function InAppWalletSetup({
+export function SessionAccountSetup({
   isOpen,
   walletAddress,
   balance,
   onContinue,
   onRefreshBalance,
   onBack,
-}: InAppWalletSetupProps) {
+}: SessionAccountSetupProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -55,16 +55,16 @@ export function InAppWalletSetup({
       {/* Modal */}
       <div className="relative z-10 w-full max-w-lg mx-4 border-2 border-primary-500 bg-black p-6">
         <h2 className="text-xl font-bold text-primary-500 text-shadow-neon mb-2 font-mono text-center">
-          ▄▄▄ IN-APP WALLET SETUP ▄▄▄
+          ▄▄▄ SESSION ACCOUNT SETUP ▄▄▄
         </h2>
         <p className="text-primary-600 font-mono text-sm text-center mb-6">
-          Your wallet has been created!
+          Your session account has been created!
         </p>
 
         {/* Wallet Address */}
         <div className="mb-4">
           <label className="block text-primary-400 font-mono text-xs mb-2">
-            YOUR WALLET ADDRESS
+            YOUR SESSION ACCOUNT ADDRESS
           </label>
           <div className="flex items-center gap-2">
             <div className="flex-1 px-3 py-2 bg-black border-2 border-primary-500 text-accent-400 font-mono text-sm break-all">
@@ -107,7 +107,7 @@ export function InAppWalletSetup({
               STEP 1: GET TEST TOKENS
             </h3>
             <ol className="text-accent-600 font-mono text-xs space-y-2">
-              <li>1. Copy your wallet address above</li>
+              <li>1. Copy your session account address above</li>
               <li>2. Visit the Polkadot Asset Hub faucet:
                 <a
                   href="https://faucet.polkadot.io/?parachain=1111"
@@ -129,7 +129,7 @@ export function InAppWalletSetup({
           <div className="flex items-start gap-2">
             <span className="text-yellow-500">!</span>
             <div className="font-mono text-xs text-yellow-600">
-              <p><strong className="text-yellow-500">IMPORTANT:</strong> Your wallet is stored in this browser. Clearing browser data will delete it.</p>
+              <p><strong className="text-yellow-500">IMPORTANT:</strong> Your session account is stored in this browser. Clearing browser data will delete it.</p>
               <p className="mt-1">You can export your private key later from the settings menu.</p>
             </div>
           </div>
@@ -152,7 +152,7 @@ export function InAppWalletSetup({
                 : 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed opacity-70'
             }`}
           >
-            {hasBalance ? 'CONTINUE' : 'FUND WALLET FIRST'}
+            {hasBalance ? 'CONTINUE' : 'FUND ACCOUNT FIRST'}
           </button>
         </div>
       </div>

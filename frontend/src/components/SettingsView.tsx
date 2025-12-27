@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
-import { truncateAddress, formatBalance, getFuelEmoji } from '../utils/formatters';
+import { formatBalance, getFuelEmoji } from '../utils/formatters';
+import { AddressDisplay } from './UserAddress';
 import type { Profile } from '../types/contracts';
 import type { WalletMode } from '../hooks/useAppWallet';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,11 +16,9 @@ interface SettingsViewProps {
 
   // Profile
   profile: Profile | null;
-  onCreateProfile: (name: string, bio: string) => Promise<void>;
-  onUpdateDisplayName: (name: string) => Promise<void>;
-  onUpdateBio: (bio: string) => Promise<void>;
+  onCreateProfile: (displayName: string, bio: string) => Promise<void>;
 
-  // In-app wallet
+  // Session account (formerly in-app wallet)
   appWalletAddress: string | null;
   appWalletBalance: bigint;
   isAuthorized: boolean;
@@ -30,10 +29,6 @@ interface SettingsViewProps {
   walletMode?: WalletMode;
   onExportPrivateKey?: () => void;
   onConnectBrowserWallet?: () => void;
-
-  // Session key (for encrypted DMs)
-  hasSessionKey?: boolean;
-  onInitializeSessionKey?: () => Promise<void>;
 }
 
 export function SettingsView({
@@ -43,8 +38,6 @@ export function SettingsView({
   onDisconnect,
   profile,
   onCreateProfile,
-  onUpdateDisplayName,
-  onUpdateBio,
   appWalletAddress,
   appWalletBalance,
   isAuthorized,
@@ -53,78 +46,44 @@ export function SettingsView({
   walletMode = 'none',
   onExportPrivateKey,
   onConnectBrowserWallet,
-  hasSessionKey = false,
-  onInitializeSessionKey,
 }: SettingsViewProps) {
   const isStandaloneMode = walletMode === 'standalone';
   const { theme, setTheme } = useTheme();
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [newBio, setNewBio] = useState('');
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [customAmount, setCustomAmount] = useState('10');
 
-  // Update form when profile changes
-  useEffect(() => {
-    if (profile?.exists) {
-      setDisplayName(profile.displayName);
-      setBio(profile.bio);
-    } else {
-      setDisplayName('');
-      setBio('');
-    }
-  }, [profile]);
-
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!displayName.trim()) {
-      toast.error('Display name is required');
+  const handleCreateProfile = async () => {
+    if (!newDisplayName.trim()) {
+      toast.error('Please enter a display name');
       return;
     }
 
-    setIsSubmitting(true);
-    const toastId = toast.loading(profile?.exists ? 'Updating profile...' : 'Creating profile...');
+    setIsCreatingProfile(true);
+    const toastId = toast.loading('Creating profile...');
 
     try {
-      if (profile?.exists) {
-        // Update display name if changed
-        if (displayName.trim() !== profile.displayName) {
-          await onUpdateDisplayName(displayName.trim());
-        }
-        // Update bio if changed
-        if (bio.trim() !== profile.bio) {
-          await onUpdateBio(bio.trim());
-        }
-      } else {
-        await onCreateProfile(displayName.trim(), bio.trim());
-      }
-      toast.success(profile?.exists ? 'Profile updated!' : 'Profile created!', { id: toastId });
-
-      // Auto-initialize session key for encrypted DMs if not already set
-      if (!hasSessionKey && onInitializeSessionKey) {
-        try {
-          await onInitializeSessionKey();
-        } catch (err) {
-          // Don't block on session key failure - can be created later
-          console.error('Failed to initialize session key:', err);
-        }
-      }
+      await onCreateProfile(newDisplayName.trim(), newBio.trim());
+      toast.success('Profile created!', { id: toastId });
+      setNewDisplayName('');
+      setNewBio('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save profile', { id: toastId });
+      toast.error(err instanceof Error ? err.message : 'Failed to create profile', { id: toastId });
     } finally {
-      setIsSubmitting(false);
+      setIsCreatingProfile(false);
     }
   };
 
   const handleSetupAppWallet = async () => {
     setIsSettingUp(true);
-    const toastId = toast.loading('Setting up in-app wallet...');
+    const toastId = toast.loading('Setting up session account...');
 
     try {
       await onSetupAppWallet();
-      toast.success('In-app wallet set up successfully!', { id: toastId });
+      toast.success('Session account set up successfully!', { id: toastId });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Setup failed', { id: toastId });
     } finally {
@@ -134,11 +93,11 @@ export function SettingsView({
 
   const handleTopUp = async (amount: bigint) => {
     setIsFunding(true);
-    const toastId = toast.loading('Topping up in-app wallet...');
+    const toastId = toast.loading('Topping up session account...');
 
     try {
       await onTopUp(amount);
-      toast.success('In-app wallet funded!', { id: toastId });
+      toast.success('Session account funded!', { id: toastId });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Funding failed', { id: toastId });
     } finally {
@@ -181,7 +140,7 @@ export function SettingsView({
                     <span className="text-primary-400">
                       {isStandaloneMode ? 'In-App:' : 'Connected:'}
                     </span>
-                    <span className="text-accent-400">{truncateAddress(walletAddress)}</span>
+                    <AddressDisplay address={walletAddress} size="sm" />
                   </div>
                   {isStandaloneMode && (
                     <div className="flex items-center justify-between font-mono text-sm">
@@ -226,55 +185,123 @@ export function SettingsView({
             </div>
           </div>
 
-          {/* PROFILE SECTION */}
-          {walletAddress && (
+          {/* PROFILE SECTION - Show create form if no profile (browser mode only) */}
+          {!isStandaloneMode && walletAddress && !profile?.exists && (
             <div>
-              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">PROFILE</h3>
-              <form onSubmit={handleProfileSubmit} className="border border-primary-700 p-4 space-y-4">
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+                CREATE PROFILE
+              </h3>
+              <div className="border border-accent-500 p-4 space-y-4">
+                <p className="text-sm text-primary-400 font-mono">
+                  Create a profile to start posting and using Plaza.
+                </p>
+
                 <div>
-                  <label className="block text-primary-400 font-mono text-sm mb-1">
+                  <label className="block text-xs text-primary-600 font-mono mb-1">
                     DISPLAY NAME *
                   </label>
                   <input
                     type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={50}
-                    disabled={isSubmitting}
-                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700"
+                    value={newDisplayName}
+                    onChange={(e) => setNewDisplayName(e.target.value)}
                     placeholder="Enter your display name"
+                    disabled={isCreatingProfile}
+                    maxLength={32}
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-accent-400 disabled:opacity-70 placeholder:text-primary-700"
                   />
-                  <span className="text-xs text-primary-600 font-mono">
-                    {displayName.length}/50 chars
-                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-primary-400 font-mono text-sm mb-1">
-                    BIO
+                  <label className="block text-xs text-primary-600 font-mono mb-1">
+                    BIO <span className="text-primary-700">(optional)</span>
                   </label>
                   <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    maxLength={500}
+                    value={newBio}
+                    onChange={(e) => setNewBio(e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    disabled={isCreatingProfile}
+                    maxLength={256}
                     rows={3}
-                    disabled={isSubmitting}
-                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 disabled:border-gray-700 resize-none"
-                    placeholder="Tell us about yourself (optional)"
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-accent-400 disabled:opacity-70 placeholder:text-primary-700 resize-none"
                   />
-                  <span className="text-xs text-primary-600 font-mono">
-                    {bio.length}/500 chars
-                  </span>
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={isSubmitting || !displayName.trim()}
-                  className="w-full py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                  onClick={handleCreateProfile}
+                  disabled={isCreatingProfile || !newDisplayName.trim()}
+                  className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                 >
-                  {isSubmitting ? 'SAVING...' : profile?.exists ? 'UPDATE PROFILE' : 'CREATE PROFILE'}
+                  {isCreatingProfile ? 'CREATING...' : 'CREATE PROFILE'}
                 </button>
-              </form>
+              </div>
+            </div>
+          )}
+
+          {/* SESSION ACCOUNT SECTION (browser wallet mode only, after profile exists) */}
+          {!isStandaloneMode && walletAddress && profile?.exists && (
+            <div>
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+                SESSION ACCOUNT <span className="text-primary-600 text-xs">(gasless messaging)</span>
+              </h3>
+
+              {!isAuthorized ? (
+                <div className="border border-primary-700 p-4 space-y-3">
+                  <div className="font-mono text-sm text-primary-400">
+                    Status: <span className="text-yellow-500">Not Set Up</span>
+                  </div>
+                  <p className="text-xs text-primary-600 font-mono">
+                    Set up a session account to post messages without MetaMask popups. This creates a delegate wallet that can post on your behalf.
+                  </p>
+                  <button
+                    onClick={handleSetupAppWallet}
+                    disabled={isSettingUp}
+                    className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isSettingUp ? 'SETTING UP...' : 'SETUP SESSION ACCOUNT'}
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-primary-700 p-4 space-y-4">
+                  <div className="font-mono text-sm space-y-2">
+                    <div className="flex justify-between text-primary-400">
+                      <span>Address:</span>
+                      <AddressDisplay address={appWalletAddress!} size="sm" />
+                    </div>
+                    <div className="flex justify-between text-primary-400">
+                      <span>Balance:</span>
+                      <span className="text-accent-400">
+                        {formatBalance(appWalletBalance)} PAS {getFuelEmoji(appWalletBalance)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-primary-600 font-mono mb-2">Top up balance:</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={customAmount}
+                          onChange={(e) => setCustomAmount(e.target.value)}
+                          placeholder="10"
+                          disabled={isFunding}
+                          className="w-full px-3 py-2 pr-12 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 text-right disabled:opacity-70"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 font-mono text-sm pointer-events-none">
+                          PAS
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleCustomTopUp}
+                        disabled={isFunding || !customAmount}
+                        className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                      >
+                        SEND
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -317,74 +344,6 @@ export function SettingsView({
                     : 'Grayscale with subtle blue accents, no glows'}
                 </p>
               </div>
-            </div>
-          )}
-
-          {/* IN-APP WALLET SECTION (browser wallet mode only) */}
-          {!isStandaloneMode && walletAddress && profile?.exists && (
-            <div>
-              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
-                IN-APP WALLET <span className="text-primary-600 text-xs">(gasless messaging)</span>
-              </h3>
-
-              {!isAuthorized ? (
-                <div className="border border-primary-700 p-4 space-y-3">
-                  <div className="font-mono text-sm text-primary-400">
-                    Status: <span className="text-yellow-500">Not Set Up</span>
-                  </div>
-                  <p className="text-xs text-primary-600 font-mono">
-                    Set up an in-app wallet to post messages without MetaMask popups. This creates a session wallet that can post on your behalf.
-                  </p>
-                  <button
-                    onClick={handleSetupAppWallet}
-                    disabled={isSettingUp}
-                    className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isSettingUp ? 'SETTING UP...' : 'SETUP IN-APP WALLET'}
-                  </button>
-                </div>
-              ) : (
-                <div className="border border-primary-700 p-4 space-y-4">
-                  <div className="font-mono text-sm space-y-2">
-                    <div className="flex justify-between text-primary-400">
-                      <span>Address:</span>
-                      <span className="text-accent-400">{truncateAddress(appWalletAddress!)}</span>
-                    </div>
-                    <div className="flex justify-between text-primary-400">
-                      <span>Balance:</span>
-                      <span className="text-accent-400">
-                        {formatBalance(appWalletBalance)} PAS {getFuelEmoji(appWalletBalance)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-primary-600 font-mono mb-2">Top up balance:</p>
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={customAmount}
-                          onChange={(e) => setCustomAmount(e.target.value)}
-                          placeholder="10"
-                          disabled={isFunding}
-                          className="w-full px-3 py-2 pr-12 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 text-right disabled:opacity-70"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 font-mono text-sm pointer-events-none">
-                          PAS
-                        </span>
-                      </div>
-                      <button
-                        onClick={handleCustomTopUp}
-                        disabled={isFunding || !customAmount}
-                        className="px-4 py-2 bg-primary-900 hover:bg-primary-800 text-primary-400 border-2 border-primary-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-                      >
-                        SEND
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

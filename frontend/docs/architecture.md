@@ -13,7 +13,7 @@ The application supports three wallet modes:
 | Mode | Description | Provider Type | Signer Source |
 |------|-------------|---------------|---------------|
 | `browser` | MetaMask or similar | `BrowserProvider` | `provider.getSigner()` |
-| `standalone` | In-app wallet (no extension) | `JsonRpcProvider` | `ethers.Wallet` from localStorage |
+| `standalone` | Session account (no extension) | `JsonRpcProvider` | `ethers.Wallet` from localStorage |
 | `none` | Not connected | N/A | N/A |
 
 **Key Difference**: `BrowserProvider` can provide a signer via `getSigner()`, but `JsonRpcProvider` is read-only and requires an external signer.
@@ -265,7 +265,7 @@ src/
 ├── components/
 │   ├── AccountModal.tsx      # Profile/wallet management UI
 │   ├── WalletChoiceModal.tsx # Initial wallet selection
-│   ├── InAppWalletSetup.tsx  # Standalone wallet funding
+│   ├── SessionAccountSetup.tsx  # Standalone wallet funding
 │   └── ...                   # Other UI components
 │
 └── App.tsx                   # Main component, walletConfig
@@ -277,12 +277,12 @@ src/
 1. [ ] Connect MetaMask
 2. [ ] Create profile
 3. [ ] Send message
-4. [ ] Setup in-app wallet (optional)
-5. [ ] Send message via in-app wallet
+4. [ ] Setup session account (optional)
+5. [ ] Send message via session account
 6. [ ] Disconnect
 
 ### Standalone Wallet Flow
-1. [ ] Create new in-app wallet
+1. [ ] Create new session account
 2. [ ] Fund wallet
 3. [ ] Create profile
 4. [ ] Send message

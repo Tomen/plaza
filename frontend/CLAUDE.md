@@ -53,7 +53,7 @@ By default, registry addresses are hidden from URL unless:
 | Hook | Purpose |
 |------|---------|
 | `useWallet` | Browser wallet connection (MetaMask) |
-| `useAppWallet` | In-app wallet management (both modes) |
+| `useAppWallet` | Session account wallet management (both modes) |
 | `useUserRegistry` | Profile CRUD, delegate management |
 | `useChannelRegistry` | Channel listing, creation |
 | `useChannel` | Message loading, posting, moderation |
@@ -76,6 +76,8 @@ By default, registry addresses are hidden from URL unless:
 | `UserProfileModal.tsx` | Inline profile overlay |
 | `ProfileView.tsx` | Full profile view (from Following) |
 | `DMConversationView.tsx` | Encrypted DM chat |
+| `UserAddress/UserLink` | Clickable user profile opener (hover: tooltip, click: profile) |
+| `UserAddress/AddressDisplay` | Informational address with copy-on-click |
 
 ## Wallet Modes
 

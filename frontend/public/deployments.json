@@ -3,13 +3,14 @@
     "network": "Polkadot Asset Hub Testnet",
     "chainId": 420420422,
     "rpcUrl": "https://testnet-passet-hub-eth-rpc.polkadot.io",
-    "userRegistry": "0xe4f80e8e3Df06513bD89254346e9020A55718602",
-    "channelRegistry": "0xCEC3dE6E53DB2BA5A859A2386391C8b3a39f6bCf",
-    "dmRegistry": "0xDd91D167301F55c8368111c3d15eaECddf2A00b3",
-    "followRegistry": "0x0b0286b04918Ce54af29E28aD7F3a742225B3557",
-    "voting": "0x2b9ca291811Fadf88691c92ef1CB7fcABC64D991",
-    "replies": "0x492db7D6278929900749CB3CE8A481D881c32FF3",
-    "userPosts": "0xA0f329311f97199011ad86090589dD983C425b47",
-    "deployedAt": "2025-12-27T19:29:24.911Z"
+    "userRegistry": "0xfAe7908e962B59e4bf4C6339D76b555170349925",
+    "channelRegistry": "0xA2eAf8b951A18c42E35f728E422f70515825212f",
+    "dmRegistry": "0xDb43b1847248D19F464a758c81791B65CC8f88cF",
+    "followRegistry": "0x765032cB1E8Eb6b9cB8Acef620479740fFd2fE1e",
+    "voting": "0xE0EBe6Aba290df78E8AD170636d432773913dD8C",
+    "replies": "0xD60e9fEB6972CC9492Aee2fc5EfB3a4b3cA61F2b",
+    "userPosts": "0xE34E23e91354190EFfc8BC0606fEF7AA68E739DE",
+    "forumThread": "0x236a59EcF5429d49799e9E12826e3267a5f1234a",
+    "deployedAt": "2025-12-27T22:17:22.197Z"
   }
 }

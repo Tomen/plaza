@@ -127,11 +127,11 @@ export function AccountModal({
 
   const handleSetupAppWallet = async () => {
     setIsSettingUp(true);
-    const toastId = toast.loading('Setting up in-app wallet...');
+    const toastId = toast.loading('Setting up session account...');
 
     try {
       await onSetupAppWallet();
-      toast.success('In-app wallet set up successfully!', { id: toastId });
+      toast.success('Session account set up successfully!', { id: toastId });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Setup failed', { id: toastId });
     } finally {
@@ -141,11 +141,11 @@ export function AccountModal({
 
   const handleTopUp = async (amount: bigint) => {
     setIsFunding(true);
-    const toastId = toast.loading('Topping up in-app wallet...');
+    const toastId = toast.loading('Topping up session account...');
 
     try {
       await onTopUp(amount);
-      toast.success('In-app wallet funded!', { id: toastId });
+      toast.success('Session account funded!', { id: toastId });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Funding failed', { id: toastId });
     } finally {
@@ -190,14 +190,14 @@ export function AccountModal({
           {/* WALLET SECTION */}
           <div>
             <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
-              {isStandaloneMode ? 'IN-APP WALLET' : 'BROWSER WALLET'}
+              {isStandaloneMode ? 'SESSION ACCOUNT' : 'BROWSER WALLET'}
             </h3>
             <div className="border border-primary-700 p-4">
               {walletAddress ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between font-mono text-sm">
                     <span className="text-primary-400">
-                      {isStandaloneMode ? '🔐 In-App:' : '● Connected:'}
+                      {isStandaloneMode ? '🔐 Session:' : '● Connected:'}
                     </span>
                     <span className="text-accent-400">{truncateAddress(walletAddress)}</span>
                   </div>
@@ -338,11 +338,11 @@ export function AccountModal({
             </div>
           )}
 
-          {/* IN-APP WALLET SECTION (browser wallet mode only) */}
+          {/* SESSION ACCOUNT SECTION (browser wallet mode only) */}
           {!isStandaloneMode && walletAddress && profile?.exists && (
             <div>
               <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
-                IN-APP WALLET <span className="text-primary-600 text-xs">(gasless messaging)</span>
+                SESSION ACCOUNT <span className="text-primary-600 text-xs">(gasless messaging)</span>
               </h3>
 
               {!isAuthorized ? (
@@ -351,14 +351,14 @@ export function AccountModal({
                     Status: <span className="text-yellow-500">Not Set Up</span>
                   </div>
                   <p className="text-xs text-primary-600 font-mono">
-                    Set up an in-app wallet to post messages without MetaMask popups. This creates a session wallet that can post on your behalf.
+                    Set up a session account to post messages without MetaMask popups. This creates a delegate wallet that can post on your behalf.
                   </p>
                   <button
                     onClick={handleSetupAppWallet}
                     disabled={isSettingUp}
                     className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                   >
-                    {isSettingUp ? 'SETTING UP...' : 'SETUP IN-APP WALLET'}
+                    {isSettingUp ? 'SETTING UP...' : 'SETUP SESSION ACCOUNT'}
                   </button>
                 </div>
               ) : (

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import type { FormattedMessage } from '../types/contracts';
-import { truncateAddress } from '../utils/formatters';
+import type { FormattedMessage, Profile } from '../types/contracts';
+import type { Provider } from '../utils/contracts';
+import { UserLink } from './UserAddress';
 
 interface ChannelUser {
   address: string;
@@ -14,9 +15,33 @@ interface UserListPanelProps {
   currentAddress: string | null;
   currentUserDisplayName?: string | null;
   onSelectUser?: (address: string) => void;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  provider?: Provider | null;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
-export function UserListPanel({ messages, currentAddress, currentUserDisplayName, onSelectUser }: UserListPanelProps) {
+export function UserListPanel({
+  messages,
+  currentAddress,
+  currentUserDisplayName,
+  onSelectUser,
+  getProfile,
+  provider,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
+}: UserListPanelProps) {
   const users = useMemo(() => {
     const userMap = new Map<string, ChannelUser>();
 
@@ -69,15 +94,14 @@ export function UserListPanel({ messages, currentAddress, currentUserDisplayName
             {users.map((user) => {
               const isCurrentUser =
                 user.address.toLowerCase() === currentAddrLower;
-              const displayIdentifier = isCurrentUser
-                ? (currentUserDisplayName || user.displayName || truncateAddress(user.address))
-                : (user.displayName || truncateAddress(user.address));
+              const displayName = isCurrentUser
+                ? (currentUserDisplayName || user.displayName)
+                : user.displayName;
 
               return (
-                <button
+                <div
                   key={user.address}
-                  onClick={() => onSelectUser?.(user.address)}
-                  className="w-full px-4 py-1.5 bg-black font-mono text-sm flex items-center gap-2 hover:bg-primary-950 transition-all text-left"
+                  className="w-full px-4 py-1.5 bg-black font-mono text-sm flex items-center gap-2 hover:bg-primary-950 transition-all"
                 >
                   <span
                     className={
@@ -86,15 +110,24 @@ export function UserListPanel({ messages, currentAddress, currentUserDisplayName
                   >
                     ●
                   </span>
-                  <span
-                    className={
-                      isCurrentUser ? 'text-accent-400' : 'text-primary-400'
-                    }
-                    title={user.address}
-                  >
-                    {displayIdentifier}
-                  </span>
-                </button>
+                  {onSelectUser && (
+                    <UserLink
+                      address={user.address}
+                      displayName={displayName}
+                      onSelectUser={onSelectUser}
+                      isCurrentUser={isCurrentUser}
+                      getProfile={getProfile}
+                      provider={provider}
+                      onStartDM={onStartDM}
+                      canSendDM={canSendDM}
+                      onFollow={onFollow}
+                      onUnfollow={onUnfollow}
+                      isFollowing={isFollowing?.(user.address)}
+                      onTip={onTip}
+                      canTip={canTip}
+                    />
+                  )}
+                </div>
               );
             })}
           </div>

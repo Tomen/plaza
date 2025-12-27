@@ -7,8 +7,10 @@ import { createReadContract, createWriteContract, type Provider, type Signer } f
 interface UseUserRegistryProps {
   registryAddress: string | null;
   provider: Provider | null;
+  writeProvider?: Provider | null; // Optional separate provider for write operations (e.g., BrowserProvider for signing)
   userAddress: string | null;
-  signer?: Signer | null;
+  signer?: Signer | null; // Signer for owner-only operations (profile creation, delegate management)
+  delegateSigner?: Signer | null; // Signer for delegate-capable operations (links) - uses session wallet
   enabled?: boolean;
 }
 
@@ -45,6 +47,7 @@ interface UseUserRegistryReturn {
   // Lookup
   resolveToOwner: (address: string) => Promise<string>;
   getProfile: (address: string) => Promise<Profile>;
+  getLinks: (address: string) => Promise<Link[]>;
   hasProfile: (address: string) => Promise<boolean>;
 
   // Refresh
@@ -54,8 +57,10 @@ interface UseUserRegistryReturn {
 export function useUserRegistry({
   registryAddress,
   provider,
+  writeProvider,
   userAddress,
   signer,
+  delegateSigner,
   enabled = true,
 }: UseUserRegistryProps): UseUserRegistryReturn {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -68,8 +73,22 @@ export function useUserRegistry({
   }, [registryAddress, provider]);
 
   const getWriteContract = useCallback(async () => {
-    return createWriteContract(registryAddress, UserRegistryABI.abi, provider, signer ?? null);
-  }, [registryAddress, provider, signer]);
+    // Use writeProvider if provided (e.g., BrowserProvider for browser wallet signing)
+    // Falls back to regular provider
+    const providerToUse = writeProvider ?? provider;
+    return createWriteContract(registryAddress, UserRegistryABI.abi, providerToUse, signer ?? null);
+  }, [registryAddress, provider, writeProvider, signer]);
+
+  // Write contract for delegate-capable operations (links)
+  // Uses delegateSigner if available, otherwise falls back to getWriteContract behavior
+  const getDelegateWriteContract = useCallback(async () => {
+    if (delegateSigner) {
+      // Use delegate signer directly with regular provider
+      return createWriteContract(registryAddress, UserRegistryABI.abi, provider, delegateSigner);
+    }
+    // Fall back to regular write contract (owner signer)
+    return getWriteContract();
+  }, [registryAddress, provider, delegateSigner, getWriteContract]);
 
   const loadProfile = useCallback(async () => {
     if (!userAddress) {
@@ -181,41 +200,42 @@ export function useUserRegistry({
     [enabled, getWriteContract, loadProfile]
   );
 
+  // Link operations use delegate signer (gasless via session wallet)
   const addLink = useCallback(
     async (name: string, url: string) => {
       if (!enabled) throw new Error("Wallet not ready");
-      const contract = await getWriteContract();
+      const contract = await getDelegateWriteContract();
       if (!contract) throw new Error("Contract not available");
 
       const tx = await contract.addLink(name, url);
       await tx.wait();
       await loadProfile();
     },
-    [enabled, getWriteContract, loadProfile]
+    [enabled, getDelegateWriteContract, loadProfile]
   );
 
   const removeLink = useCallback(
     async (index: number) => {
       if (!enabled) throw new Error("Wallet not ready");
-      const contract = await getWriteContract();
+      const contract = await getDelegateWriteContract();
       if (!contract) throw new Error("Contract not available");
 
       const tx = await contract.removeLink(index);
       await tx.wait();
       await loadProfile();
     },
-    [enabled, getWriteContract, loadProfile]
+    [enabled, getDelegateWriteContract, loadProfile]
   );
 
   const clearLinks = useCallback(async () => {
     if (!enabled) throw new Error("Wallet not ready");
-    const contract = await getWriteContract();
+    const contract = await getDelegateWriteContract();
     if (!contract) throw new Error("Contract not available");
 
     const tx = await contract.clearLinks();
     await tx.wait();
     await loadProfile();
-  }, [enabled, getWriteContract, loadProfile]);
+  }, [enabled, getDelegateWriteContract, loadProfile]);
 
   const addDelegate = useCallback(
     async (delegateAddress: string) => {
@@ -274,6 +294,20 @@ export function useUserRegistry({
         bio: p.bio,
         exists: p.exists,
       };
+    },
+    [getReadContract]
+  );
+
+  const getLinksFn = useCallback(
+    async (address: string): Promise<Link[]> => {
+      const contract = getReadContract();
+      if (!contract) return [];
+
+      const linksData = await contract.getLinks(address);
+      return linksData.map((l: { name: string; url: string }) => ({
+        name: l.name,
+        url: l.url,
+      }));
     },
     [getReadContract]
   );
@@ -352,6 +386,7 @@ export function useUserRegistry({
     hasSessionPublicKey: hasSessionPublicKeyFn,
     resolveToOwner,
     getProfile: getProfileFn,
+    getLinks: getLinksFn,
     hasProfile,
     refresh: loadProfile,
   };

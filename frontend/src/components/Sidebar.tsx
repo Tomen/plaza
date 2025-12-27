@@ -21,7 +21,7 @@ interface FollowingUser {
   displayName: string;
 }
 
-export type ViewMode = 'channels' | 'dms' | 'profile' | 'settings';
+export type ViewMode = 'channels' | 'dms' | 'profile' | 'settings' | 'forum';
 
 export type SidebarSection = 'channels' | 'dms' | 'following';
 
@@ -60,6 +60,10 @@ interface SidebarProps {
   // Current user for My Profile
   currentUserAddress?: string | null;
   currentUserDisplayName?: string | null;
+  // Callback to trigger wallet connection (for guest mode)
+  onConnectWallet?: () => void;
+  // Forum availability
+  forumAvailable?: boolean;
 }
 
 export function Sidebar({
@@ -86,6 +90,8 @@ export function Sidebar({
   onToggleSection,
   currentUserAddress,
   currentUserDisplayName,
+  onConnectWallet,
+  forumAvailable = false,
 }: SidebarProps) {
   const [channelNames, setChannelNames] = useState<ChannelListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,6 +203,10 @@ export function Sidebar({
     onViewModeChange('settings');
   };
 
+  const handleForumClick = () => {
+    onViewModeChange('forum');
+  };
+
   return (
     <div className="w-64 border-r-2 border-primary-500 bg-black flex flex-col">
       {/* My Profile Section */}
@@ -214,6 +224,23 @@ export function Sidebar({
             <span className="font-bold truncate">
               {currentUserDisplayName || truncateAddress(currentUserAddress)}
             </span>
+          </button>
+        </div>
+      )}
+
+      {/* Forum Navigation */}
+      {forumAvailable && (
+        <div className="border-b border-primary-800">
+          <button
+            onClick={handleForumClick}
+            className={`w-full text-left px-4 py-2.5 flex items-center gap-2 text-sm transition-all ${
+              viewMode === 'forum'
+                ? 'bg-primary-900 text-primary-300 border-l-2 border-primary-400'
+                : 'text-primary-500 hover:bg-primary-950'
+            }`}
+          >
+            <span className="text-primary-500">&#9776;</span>
+            <span className="font-semibold">Forum</span>
           </button>
         </div>
       )}
@@ -369,25 +396,23 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Action Buttons */}
-      {isConnected && (
-        <div className="p-3 border-t border-primary-800 space-y-2">
+      {/* Action Buttons - shown for all users, triggers wallet connection if not connected */}
+      <div className="p-3 border-t border-primary-800 space-y-2">
+        <button
+          onClick={isConnected ? onCreateChannel : onConnectWallet}
+          className="w-full py-1.5 text-xs text-primary-600 hover:text-primary-400 hover:bg-primary-950 text-left px-2 transition-colors"
+        >
+          + New Channel
+        </button>
+        {dmRegistryAvailable && (
           <button
-            onClick={onCreateChannel}
+            onClick={isConnected ? onNewDM : onConnectWallet}
             className="w-full py-1.5 text-xs text-primary-600 hover:text-primary-400 hover:bg-primary-950 text-left px-2 transition-colors"
           >
-            + New Channel
+            + New DM
           </button>
-          {onNewDM && dmRegistryAvailable && (
-            <button
-              onClick={onNewDM}
-              className="w-full py-1.5 text-xs text-primary-600 hover:text-primary-400 hover:bg-primary-950 text-left px-2 transition-colors"
-            >
-              + New DM
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Settings Button */}
       <div className="border-t-2 border-primary-500">
