@@ -72,3 +72,49 @@ export interface StoredWallet {
   authorizedFor: string;
   createdAt: number;
 }
+
+// ============ UserPosts Types ============
+
+export interface UserPost {
+  index: number;
+  profileOwner: string;
+  sender: string;
+  content: string;
+  timestamp: number;
+  editedAt: number | null;
+  isDeleted: boolean;
+  displayName?: string;
+}
+
+// ============ Replies Types ============
+
+export interface Reply {
+  index: number;
+  parentId: string;
+  profileOwner: string;
+  sender: string;
+  content: string;
+  timestamp: number;
+  editedAt: number | null;
+  isDeleted: boolean;
+  parentReplyIndex: number; // 0 for top-level, 1-indexed for nested
+  depth: number;
+  displayName?: string;
+  children?: Reply[];
+}
+
+// ============ Voting Types ============
+
+export const VoteType = {
+  None: 0,
+  Up: 1,
+  Down: 2,
+} as const;
+
+export type VoteType = (typeof VoteType)[keyof typeof VoteType];
+
+export interface VoteTally {
+  upvotes: number;
+  downvotes: number;
+  score: number;
+}

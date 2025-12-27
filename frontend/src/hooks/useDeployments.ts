@@ -8,6 +8,9 @@ interface NetworkDeployment {
   channelRegistry: string;
   dmRegistry: string;
   followRegistry?: string;
+  voting?: string;
+  replies?: string;
+  userPosts?: string;
   channels?: {
     general?: string;
   };

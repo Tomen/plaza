@@ -47,7 +47,7 @@ async function main() {
   // 4. Deploy FollowRegistry
   console.log("\n4/7 Deploying FollowRegistry...");
   const FollowRegistry = await hre.ethers.getContractFactory("FollowRegistry");
-  const followRegistry = await FollowRegistry.deploy();
+  const followRegistry = await FollowRegistry.deploy(userRegistryAddress);
   await followRegistry.waitForDeployment();
   const followRegistryAddress = await followRegistry.getAddress();
   console.log(`   ✅ FollowRegistry deployed to: ${followRegistryAddress}`);

@@ -15,7 +15,6 @@ import { useFollowRegistry } from './hooks/useFollowRegistry';
 import { hasStandaloneWallet } from './utils/appWallet';
 import { truncateAddress } from './utils/formatters';
 import { AccountButton } from './components/AccountButton';
-import { AccountModal } from './components/AccountModal';
 import { ChatFeed } from './components/ChatFeed';
 import { MessageInput } from './components/MessageInput';
 import { Sidebar, type ViewMode, type SidebarSection } from './components/Sidebar';
@@ -31,6 +30,7 @@ import { PrivateKeyExportModal } from './components/PrivateKeyExportModal';
 import { LinkBrowserWalletModal } from './components/LinkBrowserWalletModal';
 import { DMConversationView } from './components/DMConversationView';
 import { NewDMModal } from './components/NewDMModal';
+import { SettingsView } from './components/SettingsView';
 import type { PostingMode } from './types/contracts';
 
 // RPC URL for standalone wallet (Paseo Asset Hub testnet)
@@ -45,6 +45,9 @@ function App() {
   const registryAddress = urlParams.get('registry') || deployments?.channelRegistry || null;
   const dmRegistryAddress = urlParams.get('dmRegistry') || deployments?.dmRegistry || null;
   const followRegistryAddress = urlParams.get('followRegistry') || deployments?.followRegistry || null;
+  const userPostsAddress = deployments?.userPosts || null;
+  const repliesAddress = deployments?.replies || null;
+  const votingAddress = deployments?.voting || null;
   const directChannelAddress = urlParams.get('channel');
   const directDMAddress = urlParams.get('dm');
   const directProfileAddress = urlParams.get('profile');
@@ -119,9 +122,6 @@ function App() {
     const activeProvider = isStandalone ? standaloneProvider : browserWallet.provider;
     const activeAddress = isStandalone ? appWallet.appWalletAddress : browserWallet.address;
 
-    // Determine the signer for write operations
-    const activeSigner = isStandalone ? appWallet.appWallet : null;
-
     // Determine if the wallet system is ready for operations
     const isReady = isStandalone
       ? appWallet.isReady && !!appWallet.appWallet
@@ -129,16 +129,18 @@ function App() {
         ? !!browserWallet.address
         : false;
 
-    // Channel wallet: in standalone mode always use app wallet; in browser mode only if authorized
-    const channelSigner = isStandalone
+    // Single signer for all write operations:
+    // - Standalone mode: always use in-app wallet
+    // - Browser mode + authorized: use in-app wallet (gasless)
+    // - Browser mode + NOT authorized: null (falls back to browser wallet in createWriteContract)
+    const signer = isStandalone
       ? appWallet.appWallet
       : (appWallet.isAuthorized ? appWallet.appWallet : null);
 
     return {
       activeProvider,
       activeAddress,
-      activeSigner,
-      channelSigner,
+      signer,
       isReady,
       isStandalone,
       isBrowser,
@@ -149,7 +151,7 @@ function App() {
   const channelRegistry = useChannelRegistry({
     registryAddress,
     provider: walletConfig.activeProvider,
-    signer: walletConfig.activeSigner,
+    signer: walletConfig.signer,
     enabled: walletConfig.isReady,
   });
 
@@ -167,7 +169,7 @@ function App() {
     registryAddress: userRegistryAddress,
     provider: walletConfig.activeProvider,
     userAddress: walletConfig.activeAddress,
-    signer: walletConfig.activeSigner,
+    signer: walletConfig.signer,
     enabled: walletConfig.isReady,
   });
 
@@ -326,7 +328,7 @@ function App() {
     registryAddress: dmRegistryAddress,
     provider: walletConfig.activeProvider,
     userAddress: walletConfig.activeAddress,
-    signer: walletConfig.channelSigner,
+    signer: walletConfig.signer,
     enabled: walletConfig.isReady && !!dmRegistryAddress,
   });
 
@@ -335,7 +337,7 @@ function App() {
     registryAddress: followRegistryAddress,
     provider: walletConfig.activeProvider,
     userAddress: walletConfig.activeAddress,
-    signer: walletConfig.channelSigner,
+    signer: walletConfig.signer,
     enabled: walletConfig.isReady && !!followRegistryAddress,
   });
 
@@ -355,7 +357,7 @@ function App() {
     conversationAddress: selectedConversation,
     provider: walletConfig.activeProvider,
     userAddress: walletConfig.activeAddress,
-    signer: walletConfig.channelSigner,
+    signer: walletConfig.signer,
     theirPublicKey: dmOtherPublicKey,
     enabled: walletConfig.isReady && viewMode === 'dms' && !!selectedConversation,
   });
@@ -472,13 +474,12 @@ function App() {
   const channel = useChannel({
     channelAddress: selectedChannel,
     provider: walletConfig.activeProvider,
-    appWallet: walletConfig.channelSigner,
+    appWallet: walletConfig.signer,
     getDisplayName,
     enabled: walletConfig.isReady,
   });
 
   // Modals
-  const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [showModerationModal, setShowModerationModal] = useState(false);
   const [canManageChannel, setCanManageChannel] = useState(false);
@@ -487,7 +488,55 @@ function App() {
   const [showExportKeyModal, setShowExportKeyModal] = useState(false);
   const [showLinkBrowserModal, setShowLinkBrowserModal] = useState(false);
   const [profileModalAddress, setProfileModalAddress] = useState<string | null>(null);
+  const [previousViewState, setPreviousViewState] = useState<{
+    viewMode: ViewMode;
+    channel: string | null;
+    dmConvo: string | null;
+  } | null>(null);
   const [isSending, setIsSending] = useState(false);
+
+  // Handler to open profile with URL update
+  const openProfile = useCallback((address: string | null) => {
+    if (address) {
+      // Save current state before opening profile
+      setPreviousViewState({
+        viewMode,
+        channel: selectedChannel,
+        dmConvo: selectedConversation,
+      });
+      setProfileModalAddress(address);
+
+      // Update URL to show profile
+      const url = new URL(window.location.href);
+      if (showRegistryInUrl) {
+        if (registryAddress) url.searchParams.set('registry', registryAddress);
+        if (dmRegistryAddress) url.searchParams.set('dmRegistry', dmRegistryAddress);
+      }
+      url.searchParams.set('profile', address);
+      url.searchParams.delete('channel');
+      url.searchParams.delete('dm');
+      window.history.pushState({}, '', url.toString());
+    } else {
+      // Closing profile - restore previous URL
+      if (previousViewState) {
+        const url = new URL(window.location.href);
+        if (showRegistryInUrl) {
+          if (registryAddress) url.searchParams.set('registry', registryAddress);
+          if (dmRegistryAddress) url.searchParams.set('dmRegistry', dmRegistryAddress);
+        }
+        url.searchParams.delete('profile');
+
+        if (previousViewState.viewMode === 'channels' && previousViewState.channel) {
+          url.searchParams.set('channel', previousViewState.channel);
+        } else if (previousViewState.viewMode === 'dms' && previousViewState.dmConvo) {
+          url.searchParams.set('dm', previousViewState.dmConvo);
+        }
+        window.history.pushState({}, '', url.toString());
+        setPreviousViewState(null);
+      }
+      setProfileModalAddress(null);
+    }
+  }, [viewMode, selectedChannel, selectedConversation, previousViewState, showRegistryInUrl, registryAddress, dmRegistryAddress]);
 
   // Track if user explicitly initiated browser wallet connection (to avoid showing modal on page load)
   const [pendingBrowserLink, setPendingBrowserLink] = useState(false);
@@ -551,8 +600,6 @@ function App() {
   // Only show modal if user explicitly initiated the connection (pendingBrowserLink)
   useEffect(() => {
     if (walletMode === 'standalone' && browserWallet.address && pendingBrowserLink) {
-      // Close AccountModal so LinkBrowserWalletModal is visible
-      setShowAccountModal(false);
       setShowLinkBrowserModal(true);
       setPendingBrowserLink(false);
     }
@@ -757,7 +804,7 @@ function App() {
         <div className="flex items-center justify-between p-4 pb-2">
           <div>
             <h1 className="text-2xl font-bold text-primary-500 text-shadow-neon">
-              ON-CHAIN CHAT
+              PLAZA
             </h1>
           </div>
           <AccountButton
@@ -768,7 +815,7 @@ function App() {
             hasProfile={userRegistry.profile?.exists || false}
             isAuthorized={appWallet.isAuthorized}
             balance={appWallet.balance}
-            onOpenAccount={() => setShowAccountModal(true)}
+            onOpenAccount={() => setViewMode('settings')}
             walletMode={walletMode}
           />
         </div>
@@ -776,7 +823,7 @@ function App() {
         {/* Line 2: Subtitle */}
         <div className="px-4 pb-4">
           <p className="text-xs text-accent-400 text-shadow-neon-sm font-mono">
-            DECENTRALIZED MESSAGING {walletMode === 'standalone' && '(IN-APP WALLET)'}
+            DECENTRALIZED SOCIAL {walletMode === 'standalone' && '(IN-APP WALLET)'}
           </p>
         </div>
       </header>
@@ -810,11 +857,15 @@ function App() {
             followRegistryAvailable={!!followRegistryAddress}
             sidebarExpanded={sidebarExpanded}
             onToggleSection={handleToggleSection}
+            currentUserAddress={walletConfig.activeAddress}
+            currentUserDisplayName={userRegistry.profile?.displayName || null}
           />
         )}
 
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col bg-black">
+        {/* Main content area (chat + user list) - wrapped for profile overlay */}
+        <div className="flex-1 flex relative">
+          {/* Chat area */}
+          <div className="flex-1 flex flex-col bg-black">
           {/* No registry warning */}
           {!registryAddress && !directChannelAddress && (
             <div className="border-b-2 border-yellow-500 bg-yellow-950 bg-opacity-20 p-4">
@@ -839,7 +890,7 @@ function App() {
                   <span className="text-accent-400 text-sm">Set up in-app wallet for gasless messaging</span>
                 </div>
                 <button
-                  onClick={() => setShowAccountModal(true)}
+                  onClick={() => setViewMode('settings')}
                   className="px-4 py-1 bg-accent-900 text-accent-400 border border-accent-500 text-sm"
                 >
                   SETUP IN-APP WALLET
@@ -877,7 +928,7 @@ function App() {
                 isLoading={channel.isLoading && channel.messages.length === 0}
                 currentAddress={walletConfig.activeAddress}
                 currentUserDisplayName={userRegistry.profile?.displayName}
-                onSelectUser={setProfileModalAddress}
+                onSelectUser={openProfile}
               />
 
               {/* Message input */}
@@ -926,19 +977,76 @@ function App() {
               followLoading={followRegistry.isLoading}
               followerCount={followRegistry.followerCount}
               followingCount={followRegistry.followingCount}
+              userPostsAddress={userPostsAddress}
+              repliesAddress={repliesAddress}
+              votingAddress={votingAddress}
+              provider={walletConfig.activeProvider}
+              signer={walletConfig.signer}
+              getDisplayName={getDisplayName}
+              onSelectUser={setSelectedProfile}
+            />
+          ) : viewMode === 'settings' ? (
+            // Settings view
+            <SettingsView
+              walletAddress={walletConfig.activeAddress}
+              isConnecting={browserWallet.isConnecting}
+              onConnect={() => setShowWalletChoiceModal(true)}
+              onDisconnect={() => {
+                browserWallet.disconnect();
+                appWallet.disconnect();
+                setWalletMode('none');
+                setShowWalletChoiceModal(true);
+              }}
+              profile={userRegistry.profile}
+              onCreateProfile={userRegistry.createProfile}
+              onUpdateDisplayName={userRegistry.updateDisplayName}
+              onUpdateBio={userRegistry.updateBio}
+              appWalletAddress={appWallet.appWalletAddress}
+              appWalletBalance={appWallet.balance}
+              isAuthorized={appWallet.isAuthorized}
+              onSetupAppWallet={handleSetupAppWallet}
+              onTopUp={appWallet.fundWallet}
+              walletMode={walletMode}
+              onExportPrivateKey={() => setShowExportKeyModal(true)}
+              onConnectBrowserWallet={() => {
+                setPendingBrowserLink(true);
+                browserWallet.connect();
+              }}
+              hasSessionKey={sessionKeys.hasLocalKey}
+              onInitializeSessionKey={sessionKeys.initializeSessionKey}
             />
           ) : null}
-        </div>
+          </div>
 
-        {/* User list panel (only for channels) */}
-        {viewMode === 'channels' && selectedChannel && (
-          <UserListPanel
-            messages={channel.messages}
-            currentAddress={walletConfig.activeAddress}
-            currentUserDisplayName={userRegistry.profile?.displayName}
-            onSelectUser={setProfileModalAddress}
-          />
-        )}
+          {/* User list panel (only for channels) */}
+          {viewMode === 'channels' && selectedChannel && (
+            <UserListPanel
+              messages={channel.messages}
+              currentAddress={walletConfig.activeAddress}
+              currentUserDisplayName={userRegistry.profile?.displayName}
+              onSelectUser={openProfile}
+            />
+          )}
+
+          {/* Inline profile overlay - covers full main area when active */}
+          {profileModalAddress && (
+            <div className="absolute inset-0 z-10 bg-black flex flex-col">
+              <UserProfileModal
+                isOpen={true}
+                onClose={() => openProfile(null)}
+                userAddress={profileModalAddress}
+                currentUserAddress={walletConfig.activeAddress}
+                getProfile={userRegistry.getProfile}
+                onStartDM={dmRegistryAddress ? handleStartDM : undefined}
+                dmRegistryAvailable={!!dmRegistryAddress}
+                isFollowing={profileModalAddress ? followRegistry.isFollowingSync(profileModalAddress) : false}
+                onFollow={followRegistry.follow}
+                onUnfollow={followRegistry.unfollow}
+                followRegistryAvailable={!!followRegistryAddress}
+              />
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Modals */}
@@ -956,41 +1064,6 @@ function App() {
         onContinue={handleInAppSetupContinue}
         onRefreshBalance={appWallet.refreshBalance}
         onBack={handleInAppSetupBack}
-      />
-
-      <AccountModal
-        isOpen={showAccountModal}
-        onClose={() => setShowAccountModal(false)}
-        walletAddress={walletConfig.activeAddress}
-        isConnecting={browserWallet.isConnecting}
-        onConnect={() => {
-          setShowAccountModal(false);
-          setShowWalletChoiceModal(true);
-        }}
-        onDisconnect={() => {
-          browserWallet.disconnect();
-          appWallet.disconnect();
-          setWalletMode('none');
-          setShowAccountModal(false);
-          setShowWalletChoiceModal(true);
-        }}
-        profile={userRegistry.profile}
-        onCreateProfile={userRegistry.createProfile}
-        onUpdateDisplayName={userRegistry.updateDisplayName}
-        onUpdateBio={userRegistry.updateBio}
-        appWalletAddress={appWallet.appWalletAddress}
-        appWalletBalance={appWallet.balance}
-        isAuthorized={appWallet.isAuthorized}
-        onSetupAppWallet={handleSetupAppWallet}
-        onTopUp={appWallet.fundWallet}
-        walletMode={walletMode}
-        onExportPrivateKey={() => setShowExportKeyModal(true)}
-        onConnectBrowserWallet={() => {
-          setPendingBrowserLink(true);
-          browserWallet.connect();
-        }}
-        hasSessionKey={sessionKeys.hasLocalKey}
-        onInitializeSessionKey={sessionKeys.initializeSessionKey}
       />
 
       <PrivateKeyExportModal
@@ -1040,20 +1113,7 @@ function App() {
         userAddress={walletConfig.activeAddress}
       />
 
-      <UserProfileModal
-        isOpen={!!profileModalAddress}
-        onClose={() => setProfileModalAddress(null)}
-        userAddress={profileModalAddress}
-        currentUserAddress={walletConfig.activeAddress}
-        getProfile={userRegistry.getProfile}
-        onStartDM={dmRegistryAddress ? handleStartDM : undefined}
-        dmRegistryAvailable={!!dmRegistryAddress}
-        isFollowing={profileModalAddress ? followRegistry.isFollowingSync(profileModalAddress) : false}
-        onFollow={followRegistry.follow}
-        onUnfollow={followRegistry.unfollow}
-        followRegistryAvailable={!!followRegistryAddress}
-      />
-    </div>
+      </div>
   );
 }
 

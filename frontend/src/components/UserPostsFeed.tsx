@@ -1,0 +1,156 @@
+import { useUserPosts } from '../hooks/useUserPosts';
+import { useVoting } from '../hooks/useVoting';
+import { NewPostForm } from './NewPostForm';
+import { PostCard } from './PostCard';
+import type { Provider, Signer } from '../utils/contracts';
+
+interface UserPostsFeedProps {
+  userPostsAddress: string | null;
+  repliesAddress: string | null;
+  votingAddress: string | null;
+  profileOwner: string | null;
+  provider: Provider | null;
+  signer?: Signer | null;
+  currentAddress: string | null;
+  getDisplayName?: (address: string) => Promise<string>;
+  onSelectUser?: (address: string) => void;
+  isOwnProfile?: boolean;
+}
+
+export function UserPostsFeed({
+  userPostsAddress,
+  repliesAddress,
+  votingAddress,
+  profileOwner,
+  provider,
+  signer,
+  currentAddress,
+  getDisplayName,
+  onSelectUser,
+  isOwnProfile = false,
+}: UserPostsFeedProps) {
+  const {
+    posts,
+    isLoading,
+    error,
+    createPost,
+    editPost,
+    deletePost,
+    refresh,
+    postCount,
+  } = useUserPosts({
+    userPostsAddress,
+    userAddress: profileOwner,
+    provider,
+    signer,
+    getDisplayName,
+    enabled: !!profileOwner,
+  });
+
+  const {
+    vote,
+    removeVote,
+    getVoteTally,
+    getUserVote,
+    computeEntityId,
+    isVoting,
+  } = useVoting({
+    votingAddress,
+    provider,
+    signer,
+    userAddress: currentAddress,
+    enabled: !!currentAddress,
+  });
+
+  const canPost = isOwnProfile && !!signer;
+
+  if (!profileOwner) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-mono text-sm text-primary-500 uppercase tracking-wider">
+          Posts ({postCount})
+        </h3>
+        {posts.length > 0 && (
+          <button
+            onClick={refresh}
+            className="text-xs font-mono text-primary-700 hover:text-primary-500"
+          >
+            [REFRESH]
+          </button>
+        )}
+      </div>
+
+      {/* New Post Form - only on own profile */}
+      {canPost && (
+        <NewPostForm
+          onSubmit={createPost}
+          disabled={!signer}
+          placeholder="What's on your mind?"
+        />
+      )}
+
+      {/* Loading State */}
+      {isLoading && posts.length === 0 && (
+        <div className="py-8 text-center font-mono text-primary-600">
+          <div className="text-lg mb-2 terminal-cursor">...</div>
+          <div className="text-xs">LOADING POSTS...</div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="py-4 text-center font-mono text-red-500 text-sm">
+          Error: {error}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && posts.length === 0 && (
+        <div className="py-8 text-center font-mono">
+          <div className="text-primary-600 text-sm mb-1">
+            [NO POSTS YET]
+          </div>
+          {isOwnProfile && (
+            <div className="text-primary-700 text-xs">
+              Create your first post above
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Posts List */}
+      {posts.length > 0 && (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <PostCard
+              key={post.index}
+              post={post}
+              userPostsAddress={userPostsAddress}
+              repliesAddress={repliesAddress}
+              votingAddress={votingAddress}
+              provider={provider}
+              signer={signer}
+              currentAddress={currentAddress}
+              computeEntityId={computeEntityId}
+              getVoteTally={getVoteTally}
+              getUserVote={getUserVote}
+              vote={vote}
+              removeVote={removeVote}
+              isVoting={isVoting}
+              onEdit={editPost}
+              onDelete={deletePost}
+              onSelectUser={onSelectUser}
+              getDisplayName={getDisplayName}
+              disabled={!signer}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -3,10 +3,13 @@
     "network": "Polkadot Asset Hub Testnet",
     "chainId": 420420422,
     "rpcUrl": "https://testnet-passet-hub-eth-rpc.polkadot.io",
-    "userRegistry": "0x9554c7436DF9fb06852F398761E2d7152f75bc74",
-    "channelRegistry": "0xC415136fbeC35a83E5F3A1575d12016E6Bc0b780",
-    "dmRegistry": "0xf04Ada8088A24aac28b0FE582973ed6c9bc9c1cd",
-    "deployedAt": "2025-12-27T00:34:32.542Z",
-    "followRegistry": "0x91E277750494390627F7C86f1Ab6CB026a3221Da"
+    "userRegistry": "0xe4f80e8e3Df06513bD89254346e9020A55718602",
+    "channelRegistry": "0xCEC3dE6E53DB2BA5A859A2386391C8b3a39f6bCf",
+    "dmRegistry": "0xDd91D167301F55c8368111c3d15eaECddf2A00b3",
+    "followRegistry": "0x0b0286b04918Ce54af29E28aD7F3a742225B3557",
+    "voting": "0x2b9ca291811Fadf88691c92ef1CB7fcABC64D991",
+    "replies": "0x492db7D6278929900749CB3CE8A481D881c32FF3",
+    "userPosts": "0xA0f329311f97199011ad86090589dD983C425b47",
+    "deployedAt": "2025-12-27T19:29:24.911Z"
   }
 }

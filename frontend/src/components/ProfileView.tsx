@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { truncateAddress } from '../utils/formatters';
 import type { Profile } from '../types/contracts';
+import { UserPostsFeed } from './UserPostsFeed';
+import type { Provider, Signer } from '../utils/contracts';
 
 interface ProfileViewProps {
   userAddress: string | null;
@@ -16,6 +18,14 @@ interface ProfileViewProps {
   // Stats
   followerCount?: number;
   followingCount?: number;
+  // Posts functionality
+  userPostsAddress?: string | null;
+  repliesAddress?: string | null;
+  votingAddress?: string | null;
+  provider?: Provider | null;
+  signer?: Signer | null;
+  getDisplayName?: (address: string) => Promise<string>;
+  onSelectUser?: (address: string) => void;
 }
 
 export function ProfileView({
@@ -30,6 +40,13 @@ export function ProfileView({
   followLoading = false,
   followerCount = 0,
   followingCount = 0,
+  userPostsAddress,
+  repliesAddress,
+  votingAddress,
+  provider,
+  signer,
+  getDisplayName,
+  onSelectUser,
 }: ProfileViewProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -210,12 +227,30 @@ export function ProfileView({
                 </div>
               )}
 
-              {/* Empty state */}
+              {/* Empty state for bio */}
               {!profile.bio && (
-                <div className="text-center py-8">
+                <div className="text-center py-4">
                   <div className="text-primary-700 font-mono text-sm">
-                    This user hasn't added any bio or links yet.
+                    No bio added yet.
                   </div>
+                </div>
+              )}
+
+              {/* Posts Feed */}
+              {userPostsAddress && (
+                <div className="mt-6 pt-6 border-t border-primary-800">
+                  <UserPostsFeed
+                    userPostsAddress={userPostsAddress}
+                    repliesAddress={repliesAddress ?? null}
+                    votingAddress={votingAddress ?? null}
+                    profileOwner={userAddress}
+                    provider={provider ?? null}
+                    signer={signer}
+                    currentAddress={currentUserAddress ?? null}
+                    getDisplayName={getDisplayName}
+                    onSelectUser={onSelectUser}
+                    isOwnProfile={isOwnProfile}
+                  />
                 </div>
               )}
             </>

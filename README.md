@@ -1,10 +1,10 @@
-# On-Chain Chat
+# Plaza - Decentralized Social
 
-**🌐 Live Demo:** https://tomen.github.io/plaza-gossip/
+**🌐 Live Demo:** https://tomen.github.io/plaza/
 
 **WARNING: This solution is vibe coded and not considered safe for production use (although we do not suspect any issues). Use at your own risk and verify each transaction you sign!**
 
-A decentralized chat application with user profiles, multiple channels, and gasless messaging via delegated wallets. Built for Polkadot Asset Hub.
+A decentralized social platform with user profiles, chat channels, encrypted DMs, and gasless messaging via delegated wallets. Built for Polkadot Asset Hub.
 
 ## Quick Start
 
@@ -59,6 +59,9 @@ http://localhost:5173/?registry=<ChannelRegistryAddress>&dmRegistry=<DMRegistryA
 | `ChannelRegistry` | Channel discovery, registration, and factory |
 | `DMConversation` | Private 1-on-1 encrypted messaging between two users |
 | `DMRegistry` | DM conversation discovery and factory |
+| `UserPosts` | Profile posts with create/edit/delete functionality |
+| `Replies` | Shared threaded reply system for posts (and future entity types) |
+| `Voting` | Shared upvote/downvote system for posts and replies |
 
 ### Delegate System (Gasless UX)
 
@@ -219,8 +222,12 @@ Alternatively, click a user's name in a channel → **SEND DM** button.
 │   │   ├── ChatChannel.sol       # Channel & messages
 │   │   ├── ChannelRegistry.sol   # Channel factory
 │   │   ├── DMConversation.sol    # Encrypted 1-on-1 messages
-│   │   └── DMRegistry.sol        # DM factory
-│   ├── test/                     # 159 tests
+│   │   ├── DMRegistry.sol        # DM factory
+│   │   └── posts/
+│   │       ├── UserPosts.sol     # Profile posts
+│   │       ├── Replies.sol       # Threaded replies (shared)
+│   │       └── Voting.sol        # Upvote/downvote (shared)
+│   ├── test/                     # Tests
 │   └── scripts/deploy.js
 │
 ├── frontend/
@@ -231,6 +238,12 @@ Alternatively, click a user's name in a channel → **SEND DM** button.
 │   │   │   ├── Sidebar.tsx       # Channel/DM navigation tabs
 │   │   │   ├── DMConversationView.tsx  # Encrypted DM chat view
 │   │   │   ├── NewDMModal.tsx    # Start new DM conversation
+│   │   │   ├── ProfileView.tsx   # User profile with posts
+│   │   │   ├── UserPostsFeed.tsx # Posts list container
+│   │   │   ├── PostCard.tsx      # Single post display
+│   │   │   ├── VotingWidget.tsx  # Upvote/downvote controls
+│   │   │   ├── ReplyThread.tsx   # Threaded replies
+│   │   │   ├── ReplyItem.tsx     # Single reply
 │   │   │   └── ...
 │   │   ├── hooks/                # React hooks
 │   │   │   ├── useWallet.ts
@@ -241,7 +254,10 @@ Alternatively, click a user's name in a channel → **SEND DM** button.
 │   │   │   ├── useDeployments.ts     # Load contract addresses from JSON
 │   │   │   ├── useDMRegistry.ts      # DM conversation management
 │   │   │   ├── useDMConversation.ts  # Encrypted messaging
-│   │   │   └── useSessionKeys.ts     # ECDH key management
+│   │   │   ├── useSessionKeys.ts     # ECDH key management
+│   │   │   ├── useUserPosts.ts       # Profile posts CRUD
+│   │   │   ├── useReplies.ts         # Threaded replies
+│   │   │   └── useVoting.ts          # Upvote/downvote
 │   │   ├── utils/
 │   │   │   ├── appWallet.ts      # Session wallet management
 │   │   │   ├── crypto.ts         # ECDH + AES-GCM encryption
@@ -293,6 +309,9 @@ cp artifacts/contracts/ChatChannel.sol/ChatChannel.json ../frontend/src/contract
 cp artifacts/contracts/ChannelRegistry.sol/ChannelRegistry.json ../frontend/src/contracts/
 cp artifacts/contracts/DMRegistry.sol/DMRegistry.json ../frontend/src/contracts/
 cp artifacts/contracts/DMConversation.sol/DMConversation.json ../frontend/src/contracts/
+cp artifacts/contracts/posts/UserPosts.sol/UserPosts.json ../frontend/src/contracts/
+cp artifacts/contracts/posts/Replies.sol/Replies.json ../frontend/src/contracts/
+cp artifacts/contracts/posts/Voting.sol/Voting.json ../frontend/src/contracts/
 ```
 
 ---
@@ -392,20 +411,76 @@ getConversationInfo() → (participant1, participant2, messageCount)
 isParticipant(address) → bool
 ```
 
+### UserPosts
+
+```solidity
+// Post management
+createPost(content) → postIndex
+editPost(postIndex, newContent)
+deletePost(postIndex)
+
+// Retrieval
+getPost(postIndex) → Post
+getUserPosts(user, start, count) → (Post[], uint256[])
+getLatestUserPosts(user, count) → (Post[], uint256[])
+getUserPostCount(user) → uint256
+getPostCount() → uint256
+getLatestPosts(count) → Post[]
+```
+
+### Replies (Shared)
+
+```solidity
+// Reply management
+addReply(contractAddress, entityType, entityIndex, content, parentReplyIndex) → replyIndex
+editReply(replyIndex, newContent)
+deleteReply(replyIndex)
+
+// Entity types: 0=UserPost, 1=FeedItem, 2=ForumThread, 3=Reply
+// parentReplyIndex: 0 = top-level, 1+ = nested (1-indexed)
+
+// Retrieval
+getReply(replyIndex) → Reply
+getParentId(contractAddress, entityType, entityIndex) → bytes32
+getTopLevelReplies(parentId, start, count) → (Reply[], uint256[])
+getLatestTopLevelReplies(parentId, count) → (Reply[], uint256[])
+getTopLevelReplyCount(parentId) → uint256
+getChildReplies(replyIndex, start, count) → (Reply[], uint256[])
+getChildReplyCount(replyIndex) → uint256
+```
+
+### Voting (Shared)
+
+```solidity
+// Voting (VoteType: 0=None, 1=Up, 2=Down)
+vote(entityId, voteType)
+removeVote(entityId)
+
+// Queries
+getEntityId(contractAddress, entityType, entityIndex) → bytes32
+getTally(entityId) → (upvotes, downvotes)
+getScore(entityId) → int256
+getUserVote(entityId, user) → VoteType
+hasVoted(entityId, user) → bool
+```
+
 ---
 
 ## Security Notes
 
 - Channel messages are permanent and public on-chain
 - DM messages are encrypted (only participants can read)
+- Posts and replies are public on-chain (can be deleted but not truly erased)
 - Maximum channel message length: 1000 characters
 - Maximum DM encrypted content: 2000 bytes
+- Maximum post/reply length: 2000 characters
 - Maximum display name: 50 characters
 - Maximum bio: 500 characters
 - Maximum links per profile: 10
 - Session wallet private key stored in localStorage
 - ECDH session private key stored in localStorage
 - DM metadata (who talks to whom) is visible on-chain
+- Vote history is visible on-chain
 
 ---
 

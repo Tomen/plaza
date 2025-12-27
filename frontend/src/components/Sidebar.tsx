@@ -21,7 +21,7 @@ interface FollowingUser {
   displayName: string;
 }
 
-export type ViewMode = 'channels' | 'dms' | 'profile';
+export type ViewMode = 'channels' | 'dms' | 'profile' | 'settings';
 
 export type SidebarSection = 'channels' | 'dms' | 'following';
 
@@ -57,6 +57,9 @@ interface SidebarProps {
   // Sidebar expansion state
   sidebarExpanded?: SidebarExpanded;
   onToggleSection?: (section: SidebarSection) => void;
+  // Current user for My Profile
+  currentUserAddress?: string | null;
+  currentUserDisplayName?: string | null;
 }
 
 export function Sidebar({
@@ -81,6 +84,8 @@ export function Sidebar({
   followRegistryAvailable = false,
   sidebarExpanded = { channels: true, dms: true, following: true },
   onToggleSection,
+  currentUserAddress,
+  currentUserDisplayName,
 }: SidebarProps) {
   const [channelNames, setChannelNames] = useState<ChannelListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -181,8 +186,38 @@ export function Sidebar({
     onViewModeChange('profile');
   };
 
+  const handleMyProfileClick = () => {
+    if (currentUserAddress) {
+      onSelectProfile?.(currentUserAddress);
+      onViewModeChange('profile');
+    }
+  };
+
+  const handleSettingsClick = () => {
+    onViewModeChange('settings');
+  };
+
   return (
     <div className="w-64 border-r-2 border-primary-500 bg-black flex flex-col">
+      {/* My Profile Section */}
+      {isConnected && currentUserAddress && (
+        <div className="border-b-2 border-primary-500">
+          <button
+            onClick={handleMyProfileClick}
+            className={`w-full text-left px-4 py-3 flex items-center gap-2 text-sm transition-all ${
+              viewMode === 'profile' && selectedProfile === currentUserAddress
+                ? 'bg-primary-900 text-primary-300'
+                : 'text-primary-500 hover:bg-primary-950'
+            }`}
+          >
+            <span className="text-accent-400">@</span>
+            <span className="font-bold truncate">
+              {currentUserDisplayName || truncateAddress(currentUserAddress)}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Collapsible Sections */}
       <div className="flex-1 overflow-y-auto">
         {/* Channels Section */}
@@ -353,6 +388,21 @@ export function Sidebar({
           )}
         </div>
       )}
+
+      {/* Settings Button */}
+      <div className="border-t-2 border-primary-500">
+        <button
+          onClick={handleSettingsClick}
+          className={`w-full text-left px-4 py-3 flex items-center gap-2 text-sm transition-all ${
+            viewMode === 'settings'
+              ? 'bg-primary-900 text-primary-300'
+              : 'text-primary-600 hover:bg-primary-950 hover:text-primary-400'
+          }`}
+        >
+          <span>&#9881;</span>
+          <span>Settings</span>
+        </button>
+      </div>
     </div>
   );
 }

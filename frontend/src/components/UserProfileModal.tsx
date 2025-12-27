@@ -87,30 +87,23 @@ export function UserProfileModal({
   if (!isOpen || !userAddress) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black bg-opacity-80"
-        onClick={onClose}
-      />
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="border-b-2 border-primary-500 px-6 py-4 flex items-center justify-between bg-black flex-shrink-0">
+        <h2 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono">
+          ▄▄▄ USER PROFILE ▄▄▄
+        </h2>
+        <button
+          onClick={onClose}
+          className="text-primary-500 hover:text-primary-400 text-2xl font-mono leading-none"
+        >
+          ×
+        </button>
+      </div>
 
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4 border-2 border-primary-500 bg-black">
-        {/* Header */}
-        <div className="border-b-2 border-primary-500 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono">
-            ▄▄▄ USER PROFILE ▄▄▄
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-primary-500 hover:text-primary-400 text-2xl font-mono"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-4">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-md mx-auto space-y-4">
           {isLoading ? (
             <div className="text-center py-8">
               <div className="text-primary-500 font-mono text-sm animate-pulse">

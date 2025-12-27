@@ -295,6 +295,39 @@ Permissioned → Open:
 
 ---
 
+## Flow 11: Viewing User Profile (Inline)
+
+When clicking a user's name in chat or user list.
+
+```
+1. User clicks on a username in chat feed or user list
+2. openProfile() is called with the user's address
+3. Previous state is saved:
+   - Current viewMode (channels/dms)
+   - Current channel or DM address
+4. URL updates to ?profile=0x... via pushState
+5. Profile overlay appears over main content area
+   - Covers chat + user list
+   - Sidebar remains visible
+6. User can view profile, follow/unfollow, start DM
+7. To close:
+   - Click "x" button or "CLOSE" button
+   - OR press browser back button
+8. Previous URL is restored
+9. Original view (chat/DM) is revealed
+```
+
+**URL behavior:**
+- Opening profile: `?channel=0x...` → `?profile=0x...`
+- Closing profile: `?profile=0x...` → `?channel=0x...` (restored)
+- Browser back: Works naturally via pushState
+
+**Key files:**
+- `App.tsx` - `openProfile()` callback, `previousViewState` tracking
+- `UserProfileModal.tsx` - Inline profile overlay component
+
+---
+
 ## Channel Types
 
 | Type | Posting | Registry | Access |
