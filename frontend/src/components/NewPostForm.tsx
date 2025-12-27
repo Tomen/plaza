@@ -12,7 +12,7 @@ export function NewPostForm({
   onSubmit,
   disabled = false,
   placeholder = '[ENTER YOUR POST]',
-  maxLength = 2000,
+  maxLength = 40000,
 }: NewPostFormProps) {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +53,7 @@ export function NewPostForm({
 
       <div className="mt-3 flex justify-between items-center">
         <span className={`font-mono text-xs ${content.length > maxLength - 100 ? 'text-red-500' : 'text-primary-600'}`}>
-          {content.length}/{maxLength} CHARS
+          {content.length.toLocaleString()}/{maxLength.toLocaleString()} CHARS
         </span>
 
         <button

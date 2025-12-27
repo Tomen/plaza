@@ -1,8 +1,11 @@
+import { useMemo } from 'react';
 import { useUserPosts } from '../hooks/useUserPosts';
 import { useVoting } from '../hooks/useVoting';
 import { NewPostForm } from './NewPostForm';
 import { PostCard } from './PostCard';
+import { PostDetailView } from './PostDetailView';
 import type { Provider, Signer } from '../utils/contracts';
+import type { Profile } from '../types/contracts';
 
 interface UserPostsFeedProps {
   userPostsAddress: string | null;
@@ -15,6 +18,18 @@ interface UserPostsFeedProps {
   getDisplayName?: (address: string) => Promise<string>;
   onSelectUser?: (address: string) => void;
   isOwnProfile?: boolean;
+  // Post selection
+  selectedPostIndex?: number | null;
+  onPostChange?: (postIndex: number | null) => void;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 export function UserPostsFeed({
@@ -28,6 +43,18 @@ export function UserPostsFeed({
   getDisplayName,
   onSelectUser,
   isOwnProfile = false,
+  // Post selection
+  selectedPostIndex,
+  onPostChange,
+  // Tooltip props
+  getProfile,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: UserPostsFeedProps) {
   const {
     posts,
@@ -64,8 +91,57 @@ export function UserPostsFeed({
 
   const canPost = isOwnProfile && !!signer;
 
+  // Find selected post for detail view
+  const selectedPost = useMemo(() => {
+    if (selectedPostIndex == null) return null;
+    return posts.find(p => p.index === selectedPostIndex) ?? null;
+  }, [posts, selectedPostIndex]);
+
+  const handleSelectPost = (postIndex: number) => {
+    onPostChange?.(postIndex);
+  };
+
+  const handleBackToList = () => {
+    onPostChange?.(null);
+  };
+
   if (!profileOwner) {
     return null;
+  }
+
+  // Show detail view if a post is selected
+  if (selectedPost) {
+    return (
+      <PostDetailView
+        post={selectedPost}
+        userPostsAddress={userPostsAddress}
+        repliesAddress={repliesAddress}
+        votingAddress={votingAddress}
+        provider={provider}
+        signer={signer}
+        currentAddress={currentAddress}
+        computeEntityId={computeEntityId}
+        getVoteTally={getVoteTally}
+        getUserVote={getUserVote}
+        vote={vote}
+        removeVote={removeVote}
+        isVoting={isVoting}
+        onEdit={editPost}
+        onDelete={deletePost}
+        onSelectUser={onSelectUser}
+        onBack={handleBackToList}
+        getDisplayName={getDisplayName}
+        disabled={!signer}
+        getProfile={getProfile}
+        onStartDM={onStartDM}
+        canSendDM={canSendDM}
+        onFollow={onFollow}
+        onUnfollow={onUnfollow}
+        isFollowing={isFollowing}
+        onTip={onTip}
+        canTip={canTip}
+      />
+    );
   }
 
   return (
@@ -145,8 +221,17 @@ export function UserPostsFeed({
               onEdit={editPost}
               onDelete={deletePost}
               onSelectUser={onSelectUser}
+              onSelectPost={handleSelectPost}
               getDisplayName={getDisplayName}
               disabled={!signer}
+              getProfile={getProfile}
+              onStartDM={onStartDM}
+              canSendDM={canSendDM}
+              onFollow={onFollow}
+              onUnfollow={onUnfollow}
+              isFollowing={isFollowing}
+              onTip={onTip}
+              canTip={canTip}
             />
           ))}
         </div>

@@ -53,6 +53,8 @@ function App() {
   const directChannelAddress = urlParams.get('channel');
   const directDMAddress = urlParams.get('dm');
   const directProfileAddress = urlParams.get('profile');
+  const directThreadIndex = urlParams.get('thread');
+  const directPostIndex = urlParams.get('post');
 
   // Track if user provided registry params in initial URL (for URL persistence)
   const [userProvidedRegistry] = useState(() => {
@@ -252,6 +254,7 @@ function App() {
     // URL params imply view mode
     if (directProfileAddress) return 'profile';
     if (directDMAddress) return 'dms';
+    if (directThreadIndex) return 'forum';
     const stored = localStorage.getItem('viewMode') as ViewMode | null;
     if (stored === 'dms' || stored === 'profile' || stored === 'forum') return stored;
     return 'channels';
@@ -266,6 +269,24 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(() => {
     if (directProfileAddress) return directProfileAddress;
     return localStorage.getItem('selectedProfile');
+  });
+
+  // Forum thread view state
+  const [selectedThread, setSelectedThread] = useState<number | null>(() => {
+    if (directThreadIndex) {
+      const parsed = parseInt(directThreadIndex, 10);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  });
+
+  // User post view state (within profile view)
+  const [selectedPost, setSelectedPost] = useState<number | null>(() => {
+    if (directPostIndex) {
+      const parsed = parseInt(directPostIndex, 10);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
   });
 
   // Sidebar expansion state
@@ -324,28 +345,50 @@ function App() {
       url.searchParams.delete('dmRegistry');
     }
 
-    // Set channel, dm, or profile param based on view mode
+    // Set channel, dm, profile, or thread param based on view mode
     if (viewMode === 'channels' && selectedChannel) {
       url.searchParams.set('channel', selectedChannel);
       url.searchParams.delete('dm');
       url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
     } else if (viewMode === 'dms' && selectedConversation) {
       url.searchParams.set('dm', selectedConversation);
       url.searchParams.delete('channel');
       url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
     } else if (viewMode === 'profile' && selectedProfile) {
       url.searchParams.set('profile', selectedProfile);
+      if (selectedPost !== null) {
+        url.searchParams.set('post', String(selectedPost));
+      } else {
+        url.searchParams.delete('post');
+      }
       url.searchParams.delete('channel');
       url.searchParams.delete('dm');
+      url.searchParams.delete('thread');
+    } else if (viewMode === 'forum') {
+      if (selectedThread !== null) {
+        url.searchParams.set('thread', String(selectedThread));
+      } else {
+        url.searchParams.delete('thread');
+      }
+      url.searchParams.delete('channel');
+      url.searchParams.delete('dm');
+      url.searchParams.delete('profile');
+      url.searchParams.delete('post');
     } else {
       // No selection - remove all
       url.searchParams.delete('channel');
       url.searchParams.delete('dm');
       url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
     }
 
     window.history.replaceState({}, '', url.toString());
-  }, [viewMode, selectedChannel, selectedConversation, selectedProfile, showRegistryInUrl, registryAddress, dmRegistryAddress]);
+  }, [viewMode, selectedChannel, selectedConversation, selectedProfile, selectedPost, selectedThread, showRegistryInUrl, registryAddress, dmRegistryAddress]);
 
   const [showNewDMModal, setShowNewDMModal] = useState(false);
   const [dmOtherParticipant, setDmOtherParticipant] = useState<string | null>(null);
@@ -523,6 +566,7 @@ function App() {
   const openProfile = useCallback((address: string | null) => {
     if (address) {
       setSelectedProfile(address);
+      setSelectedPost(null); // Clear post selection when changing profiles
       setViewMode('profile');
     }
   }, []);
@@ -1004,7 +1048,7 @@ function App() {
               provider={walletConfig.activeProvider}
               signer={walletConfig.signer}
               getDisplayName={getDisplayName}
-              onSelectUser={setSelectedProfile}
+              onSelectUser={openProfile}
               getLinks={userRegistry.getLinks}
               onUpdateDisplayName={userRegistry.updateDisplayName}
               onUpdateBio={userRegistry.updateBio}
@@ -1015,6 +1059,11 @@ function App() {
               sessionWalletBalance={appWallet.balance}
               browserProvider={walletConfig.browserProvider}
               browserWalletAddress={browserWallet.address}
+              isFollowingUser={followRegistry.isFollowingSync}
+              onTip={setTipTargetAddress}
+              canTip={!!walletConfig.signer || !!walletConfig.browserProvider}
+              selectedPostFromUrl={selectedPost}
+              onPostChange={setSelectedPost}
             />
           ) : viewMode === 'forum' ? (
             // Forum view (public threads)
@@ -1026,8 +1075,18 @@ function App() {
               signer={walletConfig.signer}
               currentAddress={walletConfig.activeAddress}
               getDisplayName={getDisplayName}
-              onSelectUser={setSelectedProfile}
+              onSelectUser={openProfile}
               disabled={!walletConfig.canWrite}
+              selectedThreadFromUrl={selectedThread}
+              onThreadChange={setSelectedThread}
+              getProfile={userRegistry.getProfile}
+              onStartDM={dmRegistryAddress ? handleStartDM : undefined}
+              canSendDM={!!userRegistry.profile && sessionKeys.hasLocalKey}
+              onFollow={followRegistry.follow}
+              onUnfollow={followRegistry.unfollow}
+              isFollowing={followRegistry.isFollowingSync}
+              onTip={setTipTargetAddress}
+              canTip={!!walletConfig.signer || !!walletConfig.browserProvider}
             />
           ) : viewMode === 'settings' ? (
             // Settings view

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Reply, VoteType, VoteTally } from '../types/contracts';
+import type { Reply, VoteType, VoteTally, Profile } from '../types/contracts';
 import { useReplies, EntityType } from '../hooks/useReplies';
 import { useVoting, EntityType as VotingEntityType } from '../hooks/useVoting';
 import { ReplyItem } from './ReplyItem';
@@ -18,6 +18,15 @@ interface ReplyThreadProps {
   getDisplayName?: (address: string) => Promise<string>;
   onSelectUser?: (address: string) => void;
   disabled?: boolean;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 export function ReplyThread({
@@ -32,6 +41,15 @@ export function ReplyThread({
   getDisplayName,
   onSelectUser,
   disabled = false,
+  // Tooltip props
+  getProfile,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: ReplyThreadProps) {
   const [replyingTo, setReplyingTo] = useState<number | null>(null); // null = new reply form hidden, 0 = top-level, 1+ = nested
   const [replyContent, setReplyContent] = useState('');
@@ -146,6 +164,7 @@ export function ReplyThread({
         key={reply.index}
         reply={reply}
         repliesAddress={repliesAddress}
+        provider={provider}
         currentAddress={currentAddress}
         getReplyEntityId={getReplyEntityId}
         getVoteTally={getVoteTally}
@@ -160,6 +179,14 @@ export function ReplyThread({
         children={children}
         renderChild={renderReply}
         disabled={disabled}
+        getProfile={getProfile}
+        onStartDM={onStartDM}
+        canSendDM={canSendDM}
+        onFollow={onFollow}
+        onUnfollow={onUnfollow}
+        isFollowing={isFollowing}
+        onTip={onTip}
+        canTip={canTip}
       />
     );
   };
@@ -251,6 +278,7 @@ export function ReplyThread({
 interface ReplyItemWithVotingProps {
   reply: Reply;
   repliesAddress: string | null;
+  provider: Provider | null;
   currentAddress: string | null;
   getReplyEntityId: (replyIndex: number) => Promise<string>;
   getVoteTally: (entityId: string) => Promise<VoteTally>;
@@ -265,6 +293,15 @@ interface ReplyItemWithVotingProps {
   children: Reply[];
   renderChild: (child: Reply) => React.ReactNode;
   disabled: boolean;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 function ReplyItemWithVoting({
@@ -299,6 +336,15 @@ function ReplyItemWithVoting({
       children={props.children}
       renderChild={props.renderChild}
       disabled={props.disabled}
+      getProfile={props.getProfile}
+      provider={props.provider}
+      onStartDM={props.onStartDM}
+      canSendDM={props.canSendDM}
+      onFollow={props.onFollow}
+      onUnfollow={props.onUnfollow}
+      isFollowing={props.isFollowing}
+      onTip={props.onTip}
+      canTip={props.canTip}
     />
   );
 }

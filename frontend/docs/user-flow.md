@@ -359,6 +359,81 @@ When clicking a user's name in chat or user list.
 
 ---
 
+## Flow 12: Viewing a Forum Thread (Full Detail)
+
+When viewing full content of a forum thread.
+
+```
+1. User is on the Forum view (viewMode = 'forum')
+2. User sees a list of threads with preview content (300 char limit)
+3. User clicks on a thread title or "READ MORE" button
+4. URL updates to ?thread=N
+5. ThreadDetailView appears with:
+   - "← BACK TO FORUM" button
+   - Full thread title
+   - Author info and timestamp
+   - Tags (if any)
+   - Full content (up to 40k characters)
+   - Voting widget
+   - Replies section
+   - Edit/Delete buttons (for owner)
+6. User can interact with the thread:
+   - Vote (upvote/downvote)
+   - Add replies
+   - Edit content (if owner)
+7. To return to list:
+   - Click "← BACK TO FORUM" button
+   - OR use browser back button
+8. URL returns to forum list (no ?thread param)
+```
+
+**Key files:**
+- `ThreadDetailView.tsx` - Full thread view component
+- `ForumView.tsx` - Handles thread selection and routing
+- `App.tsx` - URL parameter handling for ?thread=N
+
+---
+
+## Flow 13: Viewing a User Post (Blog Style)
+
+When viewing full content of a user's post.
+
+```
+1. User is viewing a profile page (viewMode = 'profile')
+2. User sees a list of posts with preview content (300 char limit)
+3. User clicks on a post or "READ MORE →" button
+4. URL updates to ?profile=0x...&post=N
+5. PostDetailView appears with:
+   - "← BACK TO POSTS" button
+   - Post index indicator
+   - Author info and timestamp
+   - Full content (up to 40k characters)
+   - Voting widget
+   - Replies section
+   - Edit/Delete buttons (for owner)
+6. User can interact with the post:
+   - Vote (upvote/downvote)
+   - Add replies
+   - Edit content (if owner)
+7. To return to post list:
+   - Click "← BACK TO POSTS" button
+   - OR use browser back button
+8. URL returns to profile view (removes ?post param, keeps ?profile)
+```
+
+**URL patterns:**
+- Profile view: `?profile=0x1234...`
+- Post view: `?profile=0x1234...&post=5`
+
+**Key files:**
+- `PostDetailView.tsx` - Full post view component
+- `PostCard.tsx` - Shows preview with "READ MORE" button
+- `UserPostsFeed.tsx` - Handles post selection and routing
+- `ProfileView.tsx` - Passes post selection props
+- `App.tsx` - URL parameter handling for ?post=N
+
+---
+
 ## DM Requirements
 
 Direct Messages use end-to-end encryption (ECDH + AES-256-GCM). For DMs to work, **both parties** must meet requirements:

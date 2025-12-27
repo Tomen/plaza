@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ForumThread, VoteType, VoteTally } from '../types/contracts';
+import type { ForumThread, VoteType, VoteTally, Profile } from '../types/contracts';
 import { VotingWidget } from './VotingWidget';
 import { ReplyThread } from './ReplyThread';
 import { UserLink } from './UserAddress';
@@ -31,6 +31,15 @@ interface ThreadCardProps {
   getDisplayName?: (address: string) => Promise<string>;
   disabled?: boolean;
   expanded?: boolean;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 export function ThreadCard({
@@ -54,6 +63,15 @@ export function ThreadCard({
   getDisplayName,
   disabled = false,
   expanded = false,
+  // Tooltip props
+  getProfile,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: ThreadCardProps) {
   const [entityId, setEntityId] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -137,6 +155,15 @@ export function ThreadCard({
             onSelectUser={onSelectUser}
             isDelegate={isDelegate}
             size="xs"
+            getProfile={getProfile}
+            provider={provider}
+            onStartDM={onStartDM}
+            canSendDM={canSendDM}
+            onFollow={onFollow}
+            onUnfollow={onUnfollow}
+            isFollowing={isFollowing?.(thread.author)}
+            onTip={onTip}
+            canTip={canTip}
           />
         )}
         <span className="text-primary-600">
@@ -155,9 +182,12 @@ export function ThreadCard({
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             className="w-full min-h-[120px] px-3 py-2 bg-black border border-primary-600 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 resize-y"
-            maxLength={10000}
+            maxLength={40000}
             disabled={isSaving}
           />
+          <div className="text-xs font-mono text-primary-600 mt-1">
+            {editContent.length.toLocaleString()} / 40,000
+          </div>
           <div className="mt-2 flex gap-2">
             <button
               onClick={handleSaveEdit}
@@ -273,6 +303,14 @@ export function ThreadCard({
           getDisplayName={getDisplayName}
           onSelectUser={onSelectUser}
           disabled={disabled}
+          getProfile={getProfile}
+          onStartDM={onStartDM}
+          canSendDM={canSendDM}
+          onFollow={onFollow}
+          onUnfollow={onUnfollow}
+          isFollowing={isFollowing}
+          onTip={onTip}
+          canTip={canTip}
         />
       )}
     </div>

@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForumThread } from '../hooks/useForumThread';
 import { useVoting } from '../hooks/useVoting';
 import { ThreadCard } from './ThreadCard';
+import { ThreadDetailView } from './ThreadDetailView';
 import type { Provider, Signer } from '../utils/contracts';
+import type { Profile } from '../types/contracts';
 import toast from 'react-hot-toast';
 
 interface ForumViewProps {
@@ -15,6 +17,18 @@ interface ForumViewProps {
   getDisplayName?: (address: string) => Promise<string>;
   onSelectUser?: (address: string) => void;
   disabled?: boolean;
+  // URL param support
+  selectedThreadFromUrl?: number | null;
+  onThreadChange?: (threadIndex: number | null) => void;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 export function ForumView({
@@ -27,6 +41,17 @@ export function ForumView({
   getDisplayName,
   onSelectUser,
   disabled = false,
+  selectedThreadFromUrl,
+  onThreadChange,
+  // Tooltip props
+  getProfile,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: ForumViewProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -34,6 +59,9 @@ export function ForumView({
   const [newTags, setNewTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  // Use URL param if provided, otherwise use internal state
+  const selectedThreadIndex = selectedThreadFromUrl ?? null;
 
   const {
     threads,
@@ -105,6 +133,22 @@ export function ForumView({
     await deleteThread(threadIndex);
   };
 
+  // Find the selected thread
+  const selectedThread = useMemo(() => {
+    if (selectedThreadIndex === null) return null;
+    return threads.find(t => t.index === selectedThreadIndex) || null;
+  }, [threads, selectedThreadIndex]);
+
+  // Handle thread selection
+  const handleSelectThread = (threadIndex: number) => {
+    onThreadChange?.(threadIndex);
+  };
+
+  // Handle going back to list
+  const handleBackToList = () => {
+    onThreadChange?.(null);
+  };
+
   if (!forumThreadAddress) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -113,6 +157,41 @@ export function ForumView({
           Forum not available. Contract not deployed.
         </div>
       </div>
+    );
+  }
+
+  // Show thread detail view when a thread is selected
+  if (selectedThread) {
+    return (
+      <ThreadDetailView
+        thread={selectedThread}
+        forumThreadAddress={forumThreadAddress}
+        repliesAddress={repliesAddress}
+        votingAddress={votingAddress}
+        provider={provider}
+        signer={signer}
+        currentAddress={currentAddress}
+        computeEntityId={computeEntityId}
+        getVoteTally={getVoteTally}
+        getUserVote={getUserVote}
+        vote={vote}
+        removeVote={removeVote}
+        isVoting={isVoting}
+        onEdit={handleEditThread}
+        onDelete={handleDeleteThread}
+        onSelectUser={onSelectUser}
+        onBack={handleBackToList}
+        getDisplayName={getDisplayName}
+        disabled={disabled}
+        getProfile={getProfile}
+        onStartDM={onStartDM}
+        canSendDM={canSendDM}
+        onFollow={onFollow}
+        onUnfollow={onUnfollow}
+        isFollowing={isFollowing}
+        onTip={onTip}
+        canTip={canTip}
+      />
     );
   }
 
@@ -163,15 +242,18 @@ export function ForumView({
           </div>
 
           <div className="mb-3">
-            <label className="block text-xs font-mono text-primary-600 mb-1">CONTENT (max 10000 chars)</label>
+            <label className="block text-xs font-mono text-primary-600 mb-1">CONTENT (max 40,000 chars)</label>
             <textarea
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="Thread content..."
               className="w-full min-h-[120px] px-3 py-2 bg-black border border-primary-600 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 resize-y"
-              maxLength={10000}
+              maxLength={40000}
               disabled={isCreating}
             />
+            <div className="text-xs font-mono text-primary-600 mt-1">
+              {newContent.length.toLocaleString()} / 40,000
+            </div>
           </div>
 
           <div className="mb-3">
@@ -298,8 +380,17 @@ export function ForumView({
                   onEdit={handleEditThread}
                   onDelete={handleDeleteThread}
                   onSelectUser={onSelectUser}
+                  onSelectThread={handleSelectThread}
                   getDisplayName={getDisplayName}
                   disabled={disabled}
+                  getProfile={getProfile}
+                  onStartDM={onStartDM}
+                  canSendDM={canSendDM}
+                  onFollow={onFollow}
+                  onUnfollow={onUnfollow}
+                  isFollowing={isFollowing}
+                  onTip={onTip}
+                  canTip={canTip}
                 />
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { UserPost, VoteType, VoteTally } from '../types/contracts';
+import type { UserPost, VoteType, VoteTally, Profile } from '../types/contracts';
 import { VotingWidget } from './VotingWidget';
 import { ReplyThread } from './ReplyThread';
 import { UserLink } from './UserAddress';
@@ -7,6 +7,8 @@ import { formatTimestamp } from '../utils/formatters';
 import type { Provider, Signer } from '../utils/contracts';
 import { EntityType } from '../hooks/useVoting';
 import toast from 'react-hot-toast';
+
+const PREVIEW_LENGTH = 300;
 
 interface PostCardProps {
   post: UserPost;
@@ -27,8 +29,18 @@ interface PostCardProps {
   onEdit?: (postIndex: number, newContent: string) => Promise<void>;
   onDelete?: (postIndex: number) => Promise<void>;
   onSelectUser?: (address: string) => void;
+  onSelectPost?: (postIndex: number) => void;
   getDisplayName?: (address: string) => Promise<string>;
   disabled?: boolean;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 
@@ -49,8 +61,18 @@ export function PostCard({
   onEdit,
   onDelete,
   onSelectUser,
+  onSelectPost,
   getDisplayName,
   disabled = false,
+  // Tooltip props
+  getProfile,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: PostCardProps) {
   const [entityId, setEntityId] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -126,6 +148,15 @@ export function PostCard({
             onSelectUser={onSelectUser}
             isDelegate={isDelegate}
             size="xs"
+            getProfile={getProfile}
+            provider={provider}
+            onStartDM={onStartDM}
+            canSendDM={canSendDM}
+            onFollow={onFollow}
+            onUnfollow={onUnfollow}
+            isFollowing={isFollowing?.(post.profileOwner)}
+            onTip={onTip}
+            canTip={canTip}
           />
         )}
         <span className="text-primary-600">
@@ -144,9 +175,12 @@ export function PostCard({
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             className="w-full min-h-[80px] px-3 py-2 bg-black border border-primary-600 text-primary-400 font-mono text-sm focus:outline-none focus:border-primary-400 resize-y"
-            maxLength={2000}
+            maxLength={40000}
             disabled={isSaving}
           />
+          <div className="text-xs font-mono text-primary-600 mt-1">
+            {editContent.length.toLocaleString()} / 40,000
+          </div>
           <div className="mt-2 flex gap-2">
             <button
               onClick={handleSaveEdit}
@@ -168,8 +202,20 @@ export function PostCard({
           </div>
         </div>
       ) : (
-        <div className="text-sm text-primary-300 font-mono whitespace-pre-wrap mb-4">
-          {post.content}
+        <div className="mb-4">
+          <div className="text-sm text-primary-300 font-mono whitespace-pre-wrap">
+            {post.content.length > PREVIEW_LENGTH
+              ? post.content.slice(0, PREVIEW_LENGTH) + '...'
+              : post.content}
+          </div>
+          {post.content.length > PREVIEW_LENGTH && onSelectPost && (
+            <button
+              onClick={() => onSelectPost(post.index)}
+              className="mt-2 text-xs font-mono text-primary-500 hover:text-primary-400"
+            >
+              READ MORE &rarr;
+            </button>
+          )}
         </div>
       )}
 
@@ -232,6 +278,14 @@ export function PostCard({
           getDisplayName={getDisplayName}
           onSelectUser={onSelectUser}
           disabled={disabled}
+          getProfile={getProfile}
+          onStartDM={onStartDM}
+          canSendDM={canSendDM}
+          onFollow={onFollow}
+          onUnfollow={onUnfollow}
+          isFollowing={isFollowing}
+          onTip={onTip}
+          canTip={canTip}
         />
       )}
     </div>

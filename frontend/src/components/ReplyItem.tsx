@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { Reply, VoteType, VoteTally } from '../types/contracts';
+import type { Reply, VoteType, VoteTally, Profile } from '../types/contracts';
 import { VotingWidget } from './VotingWidget';
 import { UserLink } from './UserAddress';
 import { formatTimestamp } from '../utils/formatters';
+import type { Provider } from '../utils/contracts';
 import toast from 'react-hot-toast';
 
 interface ReplyItemProps {
@@ -24,6 +25,16 @@ interface ReplyItemProps {
   children?: Reply[];
   renderChild?: (child: Reply) => React.ReactNode;
   disabled?: boolean;
+  // Tooltip props
+  getProfile?: (address: string) => Promise<Profile>;
+  provider?: Provider | null;
+  onStartDM?: (address: string) => void;
+  canSendDM?: boolean;
+  onFollow?: (address: string) => Promise<void>;
+  onUnfollow?: (address: string) => Promise<void>;
+  isFollowing?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
 }
 
 export function ReplyItem({
@@ -42,6 +53,16 @@ export function ReplyItem({
   children,
   renderChild,
   disabled = false,
+  // Tooltip props
+  getProfile,
+  provider,
+  onStartDM,
+  canSendDM = false,
+  onFollow,
+  onUnfollow,
+  isFollowing,
+  onTip,
+  canTip = false,
 }: ReplyItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
@@ -100,6 +121,15 @@ export function ReplyItem({
             onSelectUser={onSelectUser}
             isDelegate={isDelegate}
             size="xs"
+            getProfile={getProfile}
+            provider={provider}
+            onStartDM={onStartDM}
+            canSendDM={canSendDM}
+            onFollow={onFollow}
+            onUnfollow={onUnfollow}
+            isFollowing={isFollowing?.(reply.profileOwner)}
+            onTip={onTip}
+            canTip={canTip}
           />
         )}
         <span className="text-primary-600">

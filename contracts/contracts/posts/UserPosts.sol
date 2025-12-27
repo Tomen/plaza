@@ -26,7 +26,7 @@ contract UserPosts {
 
     UserRegistry public immutable userRegistry;
 
-    uint256 public constant MAX_CONTENT_LENGTH = 2000;
+    uint256 public constant MAX_CONTENT_LENGTH = 40000;
 
     // Entity type for Replies contract integration
     uint8 public constant ENTITY_TYPE = 0; // UserPost = 0

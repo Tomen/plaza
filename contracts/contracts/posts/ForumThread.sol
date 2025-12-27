@@ -30,7 +30,7 @@ contract ForumThread {
     UserRegistry public immutable userRegistry;
 
     uint256 public constant MAX_TITLE_LENGTH = 200;
-    uint256 public constant MAX_CONTENT_LENGTH = 10000;
+    uint256 public constant MAX_CONTENT_LENGTH = 40000;
     uint256 public constant MAX_TAGS = 5;
     uint256 public constant MAX_TAG_LENGTH = 32;
 

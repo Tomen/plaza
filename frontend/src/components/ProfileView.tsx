@@ -45,6 +45,13 @@ interface ProfileViewProps {
   sessionWalletBalance?: bigint;
   browserProvider?: Provider | null;
   browserWalletAddress?: string | null;
+  // Tooltip props for nested UserLinks
+  isFollowingUser?: (address: string) => boolean;
+  onTip?: (address: string) => void;
+  canTip?: boolean;
+  // Post selection
+  selectedPostFromUrl?: number | null;
+  onPostChange?: (postIndex: number | null) => void;
 }
 
 export function ProfileView({
@@ -79,6 +86,13 @@ export function ProfileView({
   sessionWalletBalance,
   browserProvider,
   browserWalletAddress,
+  // Tooltip props for nested UserLinks
+  isFollowingUser,
+  onTip,
+  canTip = false,
+  // Post selection
+  selectedPostFromUrl,
+  onPostChange,
 }: ProfileViewProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [links, setLinks] = useState<Link[]>(propLinks);
@@ -579,6 +593,16 @@ export function ProfileView({
                     getDisplayName={getDisplayName}
                     onSelectUser={onSelectUser}
                     isOwnProfile={isOwnProfile}
+                    selectedPostIndex={selectedPostFromUrl}
+                    onPostChange={onPostChange}
+                    getProfile={getProfile}
+                    onStartDM={onStartDM}
+                    canSendDM={canSendDM}
+                    onFollow={onFollow}
+                    onUnfollow={onUnfollow}
+                    isFollowing={isFollowingUser}
+                    onTip={onTip}
+                    canTip={canTip}
                   />
                 </div>
               )}

@@ -516,10 +516,12 @@ Semantic colors are allowed and encouraged for status indicators. Use `border` (
 
 ### Tooltips
 
-For styled tooltips that match the terminal aesthetic (use instead of native `title` attribute):
+#### Simple CSS Tooltip (for static text)
+
+For basic tooltips that match the terminal aesthetic (use instead of native `title` attribute):
 
 ```tsx
-// Tooltip wrapper pattern (CSS-only, uses group hover)
+// CSS-only tooltip (group hover)
 <div className="relative group">
   <button disabled={isDisabled}>
     BUTTON TEXT
@@ -546,6 +548,108 @@ For styled tooltips that match the terminal aesthetic (use instead of native `ti
 - `whitespace-nowrap` - keeps tooltip on single line
 
 **Arrow:** The downward-pointing arrow uses CSS border trick with `border-t-primary-700` matching the tooltip border color.
+
+#### Interactive Tooltip (for rich content with actions)
+
+For tooltips with interactive content (buttons, links), use a portal-based approach with proper hover handling. See `ProfileTooltip` component for reference.
+
+**Key patterns:**
+
+1. **Show delay** - Wait before showing (e.g., 300ms) to avoid accidental triggers:
+```tsx
+const HOVER_DELAY = 300;
+
+const handleMouseEnter = () => {
+  showTimerRef.current = setTimeout(() => {
+    setShowTooltip(true);
+  }, HOVER_DELAY);
+};
+```
+
+2. **Hide delay** - Allow time for mouse to reach tooltip (150ms):
+```tsx
+const HIDE_DELAY = 150;
+
+const handleMouseLeave = () => {
+  hideTimerRef.current = setTimeout(() => {
+    if (!isOverTooltipRef.current) {
+      setShowTooltip(false);
+    }
+  }, HIDE_DELAY);
+};
+```
+
+3. **Bridge area** - Invisible hitbox between trigger and tooltip:
+```tsx
+// In tooltip component, add invisible bridge toward trigger
+{position.showAbove && (
+  <div className="h-3 w-full" />  // Bridge below tooltip
+)}
+<div className="bg-black border-2 border-primary-500 ...">
+  {/* Tooltip content */}
+</div>
+{!position.showAbove && (
+  <div className="h-3 w-full" />  // Bridge above tooltip
+)}
+```
+
+4. **Portal rendering** - Avoid overflow clipping:
+```tsx
+import { createPortal } from 'react-dom';
+
+return createPortal(
+  <div className="fixed z-50" style={{ top, left }}>
+    {/* Tooltip content */}
+  </div>,
+  document.body
+);
+```
+
+5. **Position calculation** - Center horizontally, flip vertically if needed:
+```tsx
+useEffect(() => {
+  const tooltip = tooltipRef.current;
+  const showAbove = triggerRect.top > tooltip.offsetHeight + gap;
+
+  const top = showAbove
+    ? triggerRect.top - tooltip.offsetHeight - gap
+    : triggerRect.bottom + gap;
+
+  let left = triggerRect.left + (triggerRect.width / 2) - (tooltip.offsetWidth / 2);
+  left = Math.max(8, Math.min(left, window.innerWidth - tooltip.offsetWidth - 8));
+
+  setPosition({ top, left, showAbove });
+}, [triggerRect]);
+```
+
+**Interactive tooltip styling:**
+```tsx
+<div className="fixed z-50 bg-black border-2 border-primary-500 shadow-lg shadow-primary-500/20 max-w-xs">
+  <div className="p-3 space-y-2">
+    {/* Header */}
+    <div className="flex items-start gap-2">
+      <div className="w-8 h-8 border border-primary-500 bg-primary-950 ...">
+        {/* Avatar */}
+      </div>
+      <div>
+        <span className="text-primary-400 font-mono text-sm font-semibold">Name</span>
+        <div className="text-primary-700 font-mono text-xs">0x1234...5678</div>
+      </div>
+    </div>
+
+    {/* Action buttons */}
+    <div className="flex gap-1.5 pt-1">
+      <button className="px-2 py-1 text-xs font-mono border ...">DM</button>
+      <button className="px-2 py-1 text-xs font-mono border ...">TIP</button>
+      <button className="px-2 py-1 text-xs font-mono border ...">FOLLOW</button>
+    </div>
+  </div>
+</div>
+```
+
+**When to use which:**
+- **CSS tooltip**: Simple explanatory text, disabled button hints
+- **Interactive tooltip**: Profile cards, action menus, any content with clickable elements
 
 ### Option Cards
 
