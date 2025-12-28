@@ -12,8 +12,6 @@ export interface UserLinkProps {
   onSelectUser: (address: string) => void;
   /** Highlight with accent color if true */
   isCurrentUser?: boolean;
-  /** Show "(via delegate)" indicator if true */
-  isDelegate?: boolean;
   /** Text size: 'xs' (12px) or 'sm' (14px), defaults to 'sm' */
   size?: AddressSize;
   /** Additional CSS classes */

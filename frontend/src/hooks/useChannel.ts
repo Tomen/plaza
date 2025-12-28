@@ -48,6 +48,9 @@ export function useChannel({
   const [error, setError] = useState<string | null>(null);
 
   const pollIntervalRef = useRef<number | null>(null);
+  const hasAttemptedDisplayNameFetch = useRef(false);
+  // Ref to always have the latest loadMessages function for polling
+  const loadMessagesRef = useRef<(() => Promise<void>) | null>(null);
 
   const getReadContract = useCallback(() => {
     return createReadContract(channelAddress, ChatChannelABI.abi, provider);
@@ -127,6 +130,11 @@ export function useChannel({
       setIsLoading(false);
     }
   }, [getReadContract, getDisplayName]);
+
+  // Keep the ref updated with the latest loadMessages function
+  useEffect(() => {
+    loadMessagesRef.current = loadMessages;
+  }, [loadMessages]);
 
   const postMessage = useCallback(
     async (content: string) => {
@@ -238,7 +246,14 @@ export function useChannel({
     [enabled, getWriteContract, loadChannelInfo]
   );
 
-  // Load messages and channel info when channel changes or getDisplayName becomes available
+  // Reset display name fetch flag when channel changes or view becomes enabled
+  useEffect(() => {
+    if (enabled) {
+      hasAttemptedDisplayNameFetch.current = false;
+    }
+  }, [channelAddress, enabled]);
+
+  // Load messages and channel info when channel changes
   useEffect(() => {
     if (channelAddress && provider) {
       loadMessages();
@@ -248,14 +263,30 @@ export function useChannel({
       setChannelInfo(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelAddress, provider, getDisplayName]);
+  }, [channelAddress, provider]);
+
+  // Re-fetch messages with display names when getDisplayName becomes available or view becomes enabled
+  useEffect(() => {
+    if (!channelAddress || !provider || !getDisplayName || !enabled) return;
+    if (messages.length === 0) return;
+    if (hasAttemptedDisplayNameFetch.current) return;
+
+    // Check if any messages are missing display names
+    const hasMissingNames = messages.some(m => !m.displayName);
+
+    if (hasMissingNames) {
+      hasAttemptedDisplayNameFetch.current = true;
+      loadMessages();
+    }
+  }, [channelAddress, provider, getDisplayName, enabled, messages, loadMessages]);
 
   // Poll for new messages every 15 seconds
+  // Uses ref to always call the latest version of loadMessages
   useEffect(() => {
     if (!channelAddress || !provider) return;
 
     pollIntervalRef.current = window.setInterval(() => {
-      loadMessages();
+      loadMessagesRef.current?.();
     }, 15000);
 
     return () => {
@@ -263,7 +294,6 @@ export function useChannel({
         clearInterval(pollIntervalRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelAddress, provider]);
 
   return {

@@ -16,7 +16,6 @@ export function UserLink({
   displayName,
   onSelectUser,
   isCurrentUser = false,
-  isDelegate = false,
   size = 'sm',
   className = '',
   // Tooltip props
@@ -120,11 +119,6 @@ export function UserLink({
       >
         {displayText}
       </button>
-      {isDelegate && (
-        <span className="text-primary-700 text-xs">
-          (via delegate)
-        </span>
-      )}
 
       {/* Tooltip */}
       {showTooltip && triggerRect && getProfile && (

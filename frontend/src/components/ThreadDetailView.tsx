@@ -78,7 +78,6 @@ export function ThreadDetailView({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isOwner = currentAddress?.toLowerCase() === thread.author.toLowerCase();
-  const isDelegate = thread.sender.toLowerCase() !== thread.author.toLowerCase();
 
   // Compute entity ID for voting
   const loadEntityId = useCallback(async () => {
@@ -172,7 +171,6 @@ export function ThreadDetailView({
                 address={thread.author}
                 displayName={thread.displayName}
                 onSelectUser={onSelectUser}
-                isDelegate={isDelegate}
                 size="sm"
                 getProfile={getProfile}
                 provider={provider}

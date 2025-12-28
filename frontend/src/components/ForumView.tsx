@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForumThread } from '../hooks/useForumThread';
 import { useVoting } from '../hooks/useVoting';
 import { ThreadCard } from './ThreadCard';
@@ -11,6 +11,7 @@ interface ForumViewProps {
   forumThreadAddress: string | null;
   repliesAddress: string | null;
   votingAddress: string | null;
+  userRegistryAddress?: string | null;
   provider: Provider | null;
   signer?: Signer | null;
   currentAddress: string | null;
@@ -20,6 +21,7 @@ interface ForumViewProps {
   // URL param support
   selectedThreadFromUrl?: number | null;
   onThreadChange?: (threadIndex: number | null) => void;
+  onThreadTitleChange?: (title: string | null) => void;
   // Tooltip props
   getProfile?: (address: string) => Promise<Profile>;
   onStartDM?: (address: string) => void;
@@ -35,6 +37,7 @@ export function ForumView({
   forumThreadAddress,
   repliesAddress,
   votingAddress,
+  userRegistryAddress,
   provider,
   signer,
   currentAddress,
@@ -43,6 +46,7 @@ export function ForumView({
   disabled = false,
   selectedThreadFromUrl,
   onThreadChange,
+  onThreadTitleChange,
   // Tooltip props
   getProfile,
   onStartDM,
@@ -76,6 +80,7 @@ export function ForumView({
     provider,
     signer,
     getDisplayName,
+    userRegistryAddress,
     enabled: true,
   });
 
@@ -138,6 +143,15 @@ export function ForumView({
     if (selectedThreadIndex === null) return null;
     return threads.find(t => t.index === selectedThreadIndex) || null;
   }, [threads, selectedThreadIndex]);
+
+  // Notify parent of thread title for page title
+  useEffect(() => {
+    if (selectedThread && onThreadTitleChange) {
+      onThreadTitleChange(selectedThread.title);
+    } else if (onThreadTitleChange) {
+      onThreadTitleChange(null);
+    }
+  }, [selectedThread, onThreadTitleChange]);
 
   // Handle thread selection
   const handleSelectThread = (threadIndex: number) => {

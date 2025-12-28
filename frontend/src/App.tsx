@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { ethers } from 'ethers';
@@ -56,14 +56,20 @@ function App() {
   const directThreadIndex = urlParams.get('thread');
   const directPostIndex = urlParams.get('post');
 
-  // Track if user provided registry params in initial URL (for URL persistence)
-  const [userProvidedRegistry] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.has('registry') || params.has('dmRegistry');
-  });
+  // Only show registry in URL if user provided non-default registry addresses
+  const showRegistryInUrl = useMemo(() => {
+    if (import.meta.env.VITE_SHOW_REGISTRY_IN_URL === 'true') return true;
 
-  // Determine if we should show registry in URL based on config or user input
-  const showRegistryInUrl = import.meta.env.VITE_SHOW_REGISTRY_IN_URL === 'true' || userProvidedRegistry;
+    const params = new URLSearchParams(window.location.search);
+    const urlRegistry = params.get('registry');
+    const urlDmRegistry = params.get('dmRegistry');
+
+    // Show in URL only if user provided addresses that differ from defaults
+    const registryDiffers = urlRegistry && urlRegistry !== deployments?.channelRegistry;
+    const dmRegistryDiffers = urlDmRegistry && urlDmRegistry !== deployments?.dmRegistry;
+
+    return registryDiffers || dmRegistryDiffers;
+  }, [deployments?.channelRegistry, deployments?.dmRegistry]);
 
   // Wallet mode: 'browser' | 'standalone' | 'none'
   // Persisted in localStorage so disconnect state survives page refresh
@@ -255,9 +261,11 @@ function App() {
     if (directProfileAddress) return 'profile';
     if (directDMAddress) return 'dms';
     if (directThreadIndex) return 'forum';
+    if (directChannelAddress) return 'channels';
     const stored = localStorage.getItem('viewMode') as ViewMode | null;
-    if (stored === 'dms' || stored === 'profile' || stored === 'forum') return stored;
-    return 'channels';
+    if (stored === 'dms' || stored === 'profile' || stored === 'forum' || stored === 'channels') return stored;
+    // Default to forum for new visitors
+    return 'forum';
   });
   const [selectedConversation, setSelectedConversation] = useState<string | null>(() => {
     // URL dm param takes priority
@@ -288,6 +296,13 @@ function App() {
     }
     return null;
   });
+
+  // Page title context (passed up from child components or derived)
+  const [currentThreadTitle, setCurrentThreadTitle] = useState<string | null>(null);
+  const [currentProfileName, setCurrentProfileName] = useState<string | null>(null);
+
+  // Track last URL to prevent duplicate history entries
+  const lastUrlRef = useRef<string>(window.location.href);
 
   // Sidebar expansion state
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {
@@ -321,6 +336,20 @@ function App() {
     }
   }, [selectedProfile]);
 
+  // Fetch profile display name for page title
+  useEffect(() => {
+    if (selectedProfile && userRegistry.getProfile) {
+      userRegistry.getProfile(selectedProfile)
+        .then(profile => setCurrentProfileName(profile?.displayName || null))
+        .catch(() => setCurrentProfileName(null));
+    } else {
+      setCurrentProfileName(null);
+    }
+  }, [selectedProfile, userRegistry.getProfile]);
+
+  // DM other participant name for page title (also used in DM view)
+  const [dmOtherParticipantName, setDmOtherParticipantName] = useState<string | null>(null);
+
   // Persist view mode and selected conversation
   useEffect(() => {
     localStorage.setItem('viewMode', viewMode);
@@ -332,68 +361,47 @@ function App() {
     }
   }, [selectedConversation]);
 
-  // Update URL when channel/conversation selection changes
+  // Handle browser back/forward navigation
   useEffect(() => {
-    const url = new URL(window.location.href);
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const channel = urlParams.get('channel');
+      const dm = urlParams.get('dm');
+      const profile = urlParams.get('profile');
+      const thread = urlParams.get('thread');
+      const post = urlParams.get('post');
 
-    // Only include registry if config enabled or user originally provided it
-    if (showRegistryInUrl) {
-      if (registryAddress) url.searchParams.set('registry', registryAddress);
-      if (dmRegistryAddress) url.searchParams.set('dmRegistry', dmRegistryAddress);
-    } else {
-      url.searchParams.delete('registry');
-      url.searchParams.delete('dmRegistry');
-    }
+      // Update lastUrlRef to current URL to prevent re-pushing
+      lastUrlRef.current = window.location.href;
 
-    // Set channel, dm, profile, or thread param based on view mode
-    if (viewMode === 'channels' && selectedChannel) {
-      url.searchParams.set('channel', selectedChannel);
-      url.searchParams.delete('dm');
-      url.searchParams.delete('profile');
-      url.searchParams.delete('post');
-      url.searchParams.delete('thread');
-    } else if (viewMode === 'dms' && selectedConversation) {
-      url.searchParams.set('dm', selectedConversation);
-      url.searchParams.delete('channel');
-      url.searchParams.delete('profile');
-      url.searchParams.delete('post');
-      url.searchParams.delete('thread');
-    } else if (viewMode === 'profile' && selectedProfile) {
-      url.searchParams.set('profile', selectedProfile);
-      if (selectedPost !== null) {
-        url.searchParams.set('post', String(selectedPost));
+      // Determine view mode and selections from URL
+      if (thread !== null) {
+        setViewMode('forum');
+        setSelectedThread(parseInt(thread, 10));
+      } else if (profile) {
+        setViewMode('profile');
+        setSelectedProfile(profile);
+        setSelectedPost(post ? parseInt(post, 10) : null);
+      } else if (dm) {
+        setViewMode('dms');
+        setSelectedConversation(dm);
+      } else if (channel) {
+        setViewMode('channels');
+        setSelectedChannel(channel);
       } else {
-        url.searchParams.delete('post');
+        // Default to forum when no specific view
+        setViewMode('forum');
+        setSelectedThread(null);
       }
-      url.searchParams.delete('channel');
-      url.searchParams.delete('dm');
-      url.searchParams.delete('thread');
-    } else if (viewMode === 'forum') {
-      if (selectedThread !== null) {
-        url.searchParams.set('thread', String(selectedThread));
-      } else {
-        url.searchParams.delete('thread');
-      }
-      url.searchParams.delete('channel');
-      url.searchParams.delete('dm');
-      url.searchParams.delete('profile');
-      url.searchParams.delete('post');
-    } else {
-      // No selection - remove all
-      url.searchParams.delete('channel');
-      url.searchParams.delete('dm');
-      url.searchParams.delete('profile');
-      url.searchParams.delete('post');
-      url.searchParams.delete('thread');
-    }
+    };
 
-    window.history.replaceState({}, '', url.toString());
-  }, [viewMode, selectedChannel, selectedConversation, selectedProfile, selectedPost, selectedThread, showRegistryInUrl, registryAddress, dmRegistryAddress]);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [showNewDMModal, setShowNewDMModal] = useState(false);
   const [dmOtherParticipant, setDmOtherParticipant] = useState<string | null>(null);
   const [dmOtherPublicKey, setDmOtherPublicKey] = useState<string | null>(null);
-  const [dmOtherParticipantName, setDmOtherParticipantName] = useState<string | null>(null);
 
   // DM Registry hook - enabled for reading even without wallet
   const dmRegistry = useDMRegistry({
@@ -510,6 +518,7 @@ function App() {
     const autoCreateProfile = async () => {
       // Only for standalone mode, when wallet is ready, and no profile exists
       if (walletMode !== 'standalone' || !walletConfig.isReady) return;
+      if (userRegistry.isLoading) return; // Wait for profile check to complete
       if (userRegistry.profile === null) return; // Still loading
       if (userRegistry.profile.exists) return; // Already has profile
 
@@ -530,7 +539,7 @@ function App() {
 
     autoCreateProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletMode, walletConfig.isReady, userRegistry.profile, sessionKeys.hasLocalKey]);
+  }, [walletMode, walletConfig.isReady, userRegistry.isLoading, userRegistry.profile, sessionKeys.hasLocalKey]);
 
   // Get display name helper - depends only on getProfile to avoid frequent recreation
   const getDisplayName = useCallback(async (address: string): Promise<string> => {
@@ -550,6 +559,95 @@ function App() {
     getDisplayName,
     enabled: viewMode === 'channels' && !!selectedChannel,
   });
+
+  // Derive current channel name for page title (from loaded channel info)
+  const currentChannelName = channel.channelInfo?.name || null;
+
+  // Update URL and page title when navigation state changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+
+    // Only include registry if config enabled or user originally provided it
+    if (showRegistryInUrl) {
+      if (registryAddress) url.searchParams.set('registry', registryAddress);
+      if (dmRegistryAddress) url.searchParams.set('dmRegistry', dmRegistryAddress);
+    } else {
+      url.searchParams.delete('registry');
+      url.searchParams.delete('dmRegistry');
+    }
+
+    // Set channel, dm, profile, or thread param based on view mode
+    if (viewMode === 'channels' && selectedChannel) {
+      url.searchParams.set('channel', selectedChannel);
+      url.searchParams.delete('dm');
+      url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
+    } else if (viewMode === 'dms' && selectedConversation) {
+      url.searchParams.set('dm', selectedConversation);
+      url.searchParams.delete('channel');
+      url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
+    } else if (viewMode === 'profile' && selectedProfile) {
+      url.searchParams.set('profile', selectedProfile);
+      if (selectedPost !== null) {
+        url.searchParams.set('post', String(selectedPost));
+      } else {
+        url.searchParams.delete('post');
+      }
+      url.searchParams.delete('channel');
+      url.searchParams.delete('dm');
+      url.searchParams.delete('thread');
+    } else if (viewMode === 'forum') {
+      if (selectedThread !== null) {
+        url.searchParams.set('thread', String(selectedThread));
+      } else {
+        url.searchParams.delete('thread');
+      }
+      url.searchParams.delete('channel');
+      url.searchParams.delete('dm');
+      url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+    } else {
+      // No selection - remove all
+      url.searchParams.delete('channel');
+      url.searchParams.delete('dm');
+      url.searchParams.delete('profile');
+      url.searchParams.delete('post');
+      url.searchParams.delete('thread');
+    }
+
+    // Determine page title
+    let title = 'Plaza';
+    if (viewMode === 'forum' && selectedThread !== null && currentThreadTitle) {
+      title = `${currentThreadTitle} - Plaza`;
+    } else if (viewMode === 'profile' && selectedProfile) {
+      title = currentProfileName
+        ? `${currentProfileName} - Profile - Plaza`
+        : 'Profile - Plaza';
+    } else if (viewMode === 'channels') {
+      title = currentChannelName
+        ? `${currentChannelName} - Chat - Plaza`
+        : 'Chat - Plaza';
+    } else if (viewMode === 'dms') {
+      title = dmOtherParticipantName
+        ? `${dmOtherParticipantName} - Messages - Plaza`
+        : 'Messages - Plaza';
+    } else if (viewMode === 'forum') {
+      title = 'Forum - Plaza';
+    }
+
+    // Update page title
+    document.title = title;
+
+    // Push to history if URL changed (use pushState for history entries)
+    const newUrl = url.toString();
+    if (newUrl !== lastUrlRef.current) {
+      window.history.pushState({}, title, newUrl);
+      lastUrlRef.current = newUrl;
+    }
+  }, [viewMode, selectedChannel, selectedConversation, selectedProfile, selectedPost, selectedThread, currentThreadTitle, currentProfileName, currentChannelName, dmOtherParticipantName, showRegistryInUrl, registryAddress, dmRegistryAddress]);
 
   // Modals
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
@@ -629,6 +727,12 @@ function App() {
     && userRegistry.profile?.exists
     && !appWallet.isAuthorized
     && !appWallet.isCheckingAuth;
+
+  // Show profile setup banner - standalone mode, has profile but not customized yet
+  const showSetupProfileBanner = walletMode === 'standalone'
+    && appWallet.isReady
+    && userRegistry.profile?.exists
+    && !userRegistry.profile.bio;  // Empty bio = not customized
 
   // Detect when browser wallet connects in standalone mode (for linking)
   // Only show modal if user explicitly initiated the connection (pendingBrowserLink)
@@ -839,25 +943,26 @@ function App() {
 
       {/* Header */}
       <header className="border-b-2 border-primary-500 bg-black">
-        {/* Line 1: Branding + Account Button */}
-        <div className="flex items-center justify-between p-4 pb-2">
-          <div>
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={() => {
+              setViewMode('forum');
+              setSelectedThread(0);
+            }}
+            className="flex items-baseline gap-4 hover:opacity-80 transition-opacity"
+          >
             <h1 className="text-2xl font-bold text-primary-500 text-shadow-neon">
               PLAZA
             </h1>
-          </div>
+            <span className="text-sm text-accent-400 text-shadow-neon-sm font-mono">
+              DECENTRALIZED SOCIAL {walletMode === 'standalone' && '(IN-APP WALLET)'}
+            </span>
+          </button>
           <AccountButton
             walletAddress={walletConfig.activeAddress}
             isConnecting={browserWallet.isConnecting}
             onConnect={() => setShowWalletChoiceModal(true)}
           />
-        </div>
-
-        {/* Line 2: Subtitle */}
-        <div className="px-4 pb-4">
-          <p className="text-xs text-accent-400 text-shadow-neon-sm font-mono">
-            DECENTRALIZED SOCIAL {walletMode === 'standalone' && '(IN-APP WALLET)'}
-          </p>
         </div>
       </header>
 
@@ -947,6 +1052,24 @@ function App() {
                   className="px-4 py-1 bg-accent-900 text-accent-400 border border-accent-500 text-sm"
                 >
                   SETUP SESSION ACCOUNT
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Profile setup banner for standalone users */}
+          {showSetupProfileBanner && (
+            <div className="border-b-2 border-accent-500 bg-accent-950 bg-opacity-20 p-4">
+              <div className="flex items-center justify-between font-mono">
+                <div className="flex items-center">
+                  <span className="text-accent-500 mr-3">i</span>
+                  <span className="text-accent-400 text-sm">Set up your profile with a username and bio</span>
+                </div>
+                <button
+                  onClick={() => setViewMode('settings')}
+                  className="px-4 py-1 bg-accent-900 text-accent-400 border border-accent-500 text-sm"
+                >
+                  SET UP PROFILE
                 </button>
               </div>
             </div>
@@ -1062,6 +1185,7 @@ function App() {
               isFollowingUser={followRegistry.isFollowingSync}
               onTip={setTipTargetAddress}
               canTip={!!walletConfig.signer || !!walletConfig.browserProvider}
+              onConnectWallet={() => setShowWalletChoiceModal(true)}
               selectedPostFromUrl={selectedPost}
               onPostChange={setSelectedPost}
             />
@@ -1071,6 +1195,7 @@ function App() {
               forumThreadAddress={forumThreadAddress}
               repliesAddress={repliesAddress}
               votingAddress={votingAddress}
+              userRegistryAddress={userRegistryAddress}
               provider={walletConfig.activeProvider}
               signer={walletConfig.signer}
               currentAddress={walletConfig.activeAddress}
@@ -1079,6 +1204,7 @@ function App() {
               disabled={!walletConfig.canWrite}
               selectedThreadFromUrl={selectedThread}
               onThreadChange={setSelectedThread}
+              onThreadTitleChange={setCurrentThreadTitle}
               getProfile={userRegistry.getProfile}
               onStartDM={dmRegistryAddress ? handleStartDM : undefined}
               canSendDM={!!userRegistry.profile && sessionKeys.hasLocalKey}
@@ -1114,6 +1240,8 @@ function App() {
                 setPendingBrowserLink(true);
                 browserWallet.connect();
               }}
+              onUpdateDisplayName={userRegistry.updateDisplayName}
+              onUpdateBio={userRegistry.updateBio}
             />
           ) : null}
           </div>
@@ -1215,6 +1343,7 @@ function App() {
           sessionWalletBalance={appWallet.balance}
           browserProvider={walletConfig.browserProvider}
           browserWalletAddress={browserWallet.address}
+          onConnectWallet={() => setShowWalletChoiceModal(true)}
         />
       )}
 

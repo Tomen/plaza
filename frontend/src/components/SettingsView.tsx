@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { formatBalance, getFuelEmoji } from '../utils/formatters';
@@ -29,6 +29,10 @@ interface SettingsViewProps {
   walletMode?: WalletMode;
   onExportPrivateKey?: () => void;
   onConnectBrowserWallet?: () => void;
+
+  // Profile editing (for standalone mode)
+  onUpdateDisplayName?: (displayName: string) => Promise<void>;
+  onUpdateBio?: (bio: string) => Promise<void>;
 }
 
 export function SettingsView({
@@ -46,6 +50,8 @@ export function SettingsView({
   walletMode = 'none',
   onExportPrivateKey,
   onConnectBrowserWallet,
+  onUpdateDisplayName,
+  onUpdateBio,
 }: SettingsViewProps) {
   const isStandaloneMode = walletMode === 'standalone';
   const { theme, setTheme } = useTheme();
@@ -55,6 +61,19 @@ export function SettingsView({
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [customAmount, setCustomAmount] = useState('10');
+
+  // Profile editing state (for standalone mode)
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Initialize edit fields from profile when it loads
+  useEffect(() => {
+    if (profile?.exists) {
+      setEditDisplayName(profile.displayName);
+      setEditBio(profile.bio);
+    }
+  }, [profile]);
 
   const handleCreateProfile = async () => {
     if (!newDisplayName.trim()) {
@@ -114,6 +133,32 @@ export function SettingsView({
 
     await handleTopUp(ethers.parseEther(customAmount));
     setCustomAmount('');
+  };
+
+  const handleSaveProfile = async () => {
+    if (!onUpdateDisplayName || !onUpdateBio) return;
+    if (!editDisplayName.trim()) {
+      toast.error('Display name cannot be empty');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    const toastId = toast.loading('Saving profile...');
+
+    try {
+      // Only update if values changed
+      if (editDisplayName.trim() !== profile?.displayName) {
+        await onUpdateDisplayName(editDisplayName.trim());
+      }
+      if (editBio.trim() !== profile?.bio) {
+        await onUpdateBio(editBio.trim());
+      }
+      toast.success('Profile saved!', { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save profile', { id: toastId });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   return (
@@ -184,6 +229,52 @@ export function SettingsView({
               )}
             </div>
           </div>
+
+          {/* PROFILE SECTION - For standalone users to customize profile */}
+          {isStandaloneMode && walletAddress && profile?.exists && onUpdateDisplayName && (
+            <div>
+              <h3 className="text-sm font-bold text-accent-400 font-mono mb-3">
+                PROFILE
+              </h3>
+              <div className="border border-accent-500 p-4 space-y-4">
+                <div>
+                  <label className="block text-xs text-primary-600 font-mono mb-1">
+                    DISPLAY NAME
+                  </label>
+                  <input
+                    type="text"
+                    value={editDisplayName}
+                    onChange={(e) => setEditDisplayName(e.target.value)}
+                    disabled={isSavingProfile}
+                    maxLength={32}
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-accent-400 disabled:opacity-70"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-primary-600 font-mono mb-1">
+                    BIO
+                  </label>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    disabled={isSavingProfile}
+                    maxLength={256}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-black border-2 border-primary-500 text-primary-400 font-mono text-sm focus:outline-none focus:border-accent-400 disabled:opacity-70 resize-none"
+                  />
+                </div>
+
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={isSavingProfile || (editDisplayName === profile?.displayName && editBio === profile?.bio)}
+                  className="w-full py-2 bg-accent-900 hover:bg-accent-800 text-accent-400 border-2 border-accent-500 font-mono text-sm disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                >
+                  {isSavingProfile ? 'SAVING...' : 'SAVE PROFILE'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* PROFILE SECTION - Show create form if no profile (browser mode only) */}
           {!isStandaloneMode && walletAddress && !profile?.exists && (

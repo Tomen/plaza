@@ -13,6 +13,7 @@ interface UseForumThreadProps {
   provider: Provider | null;
   signer?: Signer | null;
   getDisplayName?: (address: string) => Promise<string>;
+  userRegistryAddress?: string | null;
   enabled?: boolean;
 }
 
@@ -57,6 +58,7 @@ export function useForumThread({
   provider,
   signer,
   getDisplayName,
+  userRegistryAddress,
   enabled = true,
 }: UseForumThreadProps): UseForumThreadReturn {
   const [threads, setThreads] = useState<ForumThread[]>([]);
@@ -65,6 +67,7 @@ export function useForumThread({
   const [error, setError] = useState<string | null>(null);
 
   const pollIntervalRef = useRef<number | null>(null);
+  const hasAttemptedDisplayNameFetch = useRef(false);
 
   const getReadContract = useCallback(() => {
     return createReadContract(forumThreadAddress, ForumThreadABI.abi, provider);
@@ -103,7 +106,7 @@ export function useForumThread({
         displayName,
       };
     },
-    [getDisplayName]
+    [getDisplayName, userRegistryAddress]
   );
 
   const loadThreads = useCallback(async () => {
@@ -281,7 +284,30 @@ export function useForumThread({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forumThreadAddress, provider]);
 
-  // Poll for new threads every 30 seconds
+  // Reset the display name fetch flag when userRegistryAddress changes
+  useEffect(() => {
+    hasAttemptedDisplayNameFetch.current = false;
+  }, [userRegistryAddress]);
+
+  // Re-fetch display names when getDisplayName becomes available
+  // This triggers when userRegistryAddress changes (which recreates getDisplayName)
+  useEffect(() => {
+    // Only re-fetch if we have threads and getDisplayName is available
+    if (!forumThreadAddress || !provider || !getDisplayName) return;
+    if (threads.length === 0) return;
+    // Only attempt once per userRegistryAddress change to prevent infinite loops
+    if (hasAttemptedDisplayNameFetch.current) return;
+
+    // Check if any non-deleted threads are missing display names
+    const hasMissingNames = threads.some(t => !t.displayName && !t.isDeleted);
+
+    if (hasMissingNames && userRegistryAddress) {
+      hasAttemptedDisplayNameFetch.current = true;
+      loadThreads();
+    }
+  }, [forumThreadAddress, provider, getDisplayName, userRegistryAddress, threads, loadThreads]);
+
+  // Poll for new threads periodically
   useEffect(() => {
     if (!forumThreadAddress || !provider) return;
 
@@ -294,8 +320,7 @@ export function useForumThread({
         clearInterval(pollIntervalRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forumThreadAddress, provider]);
+  }, [forumThreadAddress, provider, loadThreads]);
 
   return {
     threads,

@@ -78,7 +78,6 @@ export function PostDetailView({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isOwner = currentAddress?.toLowerCase() === post.profileOwner.toLowerCase();
-  const isDelegate = post.sender.toLowerCase() !== post.profileOwner.toLowerCase();
 
   // Compute entity ID for voting
   const loadEntityId = useCallback(async () => {
@@ -167,7 +166,6 @@ export function PostDetailView({
                 address={post.profileOwner}
                 displayName={post.displayName}
                 onSelectUser={onSelectUser}
-                isDelegate={isDelegate}
                 size="sm"
                 getProfile={getProfile}
                 provider={provider}

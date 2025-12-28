@@ -81,7 +81,6 @@ export function ThreadCard({
   const [showReplies, setShowReplies] = useState(expanded);
 
   const isOwner = currentAddress?.toLowerCase() === thread.author.toLowerCase();
-  const isDelegate = thread.sender.toLowerCase() !== thread.author.toLowerCase();
 
   // Compute entity ID for voting
   const loadEntityId = useCallback(async () => {
@@ -153,7 +152,6 @@ export function ThreadCard({
             address={thread.author}
             displayName={thread.displayName}
             onSelectUser={onSelectUser}
-            isDelegate={isDelegate}
             size="xs"
             getProfile={getProfile}
             provider={provider}

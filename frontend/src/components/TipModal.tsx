@@ -24,6 +24,8 @@ interface TipModalProps {
   // Browser wallet
   browserProvider?: Provider | null;
   browserWalletAddress?: string | null;
+  // Connect wallet callback (when no wallet connected)
+  onConnectWallet?: () => void;
 }
 
 export function TipModal({
@@ -36,6 +38,7 @@ export function TipModal({
   sessionWalletBalance = 0n,
   browserProvider,
   browserWalletAddress,
+  onConnectWallet,
 }: TipModalProps) {
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -263,8 +266,29 @@ export function TipModal({
             </div>
           )}
 
-          {/* Amount */}
-          <div>
+          {/* No wallet connected */}
+          {walletOptions.length === 0 && (
+            <div className="text-center py-4">
+              <p className="text-primary-400 font-mono text-sm mb-4">
+                Connect a wallet to send tips
+              </p>
+              {onConnectWallet && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onConnectWallet();
+                  }}
+                  className="px-6 py-2 border-2 border-yellow-500 bg-yellow-950 text-yellow-500 font-mono text-sm hover:bg-yellow-900 transition-colors"
+                >
+                  CONNECT WALLET
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Amount - only show when wallet available */}
+          {walletOptions.length > 0 && <div>
             <label className="block text-primary-600 font-mono text-xs mb-2">
               AMOUNT
             </label>
@@ -283,7 +307,7 @@ export function TipModal({
                 </span>
               </div>
             </div>
-          </div>
+          </div>}
 
           {error && (
             <div className="p-3 border border-red-500 bg-red-950/20">

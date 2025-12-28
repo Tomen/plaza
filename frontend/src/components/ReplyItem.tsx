@@ -70,7 +70,6 @@ export function ReplyItem({
   const [isSaving, setIsSaving] = useState(false);
 
   const isOwner = currentAddress?.toLowerCase() === reply.profileOwner.toLowerCase();
-  const isDelegate = reply.sender.toLowerCase() !== reply.profileOwner.toLowerCase();
 
   const handleSaveEdit = async () => {
     if (!editContent.trim() || isSaving) return;
@@ -119,7 +118,6 @@ export function ReplyItem({
             address={reply.profileOwner}
             displayName={reply.displayName}
             onSelectUser={onSelectUser}
-            isDelegate={isDelegate}
             size="xs"
             getProfile={getProfile}
             provider={provider}

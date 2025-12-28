@@ -7,9 +7,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('\n🚀 Building frontend with auto-redirect...\n');
+console.log('\n🚀 Building frontend for deployment...\n');
 
-// Read deployments.json
+// Read deployments.json to verify it exists
 const deploymentsPath = path.join(__dirname, '../../deployments.json');
 if (!fs.existsSync(deploymentsPath)) {
   console.error('❌ deployments.json not found!');
@@ -40,11 +40,10 @@ if (!deployment.channelRegistry) {
   process.exit(1);
 }
 
-const registryAddress = deployment.channelRegistry;
 console.log(`🔧 Configuration:`);
 console.log(`   Network: ${deployment.network}`);
 console.log(`   Chain ID: ${deployment.chainId}`);
-console.log(`   Registry: ${registryAddress}`);
+console.log(`   Registry: ${deployment.channelRegistry}`);
 
 // Run build
 console.log('\n📦 Building frontend...');
@@ -55,44 +54,8 @@ try {
   process.exit(1);
 }
 
-// Inject redirect script into index.html
 const distPath = path.join(__dirname, '../dist');
-const indexPath = path.join(distPath, 'index.html');
-
-if (!fs.existsSync(indexPath)) {
-  console.error('❌ Build output not found: dist/index.html');
-  process.exit(1);
-}
-
-let indexHtml = fs.readFileSync(indexPath, 'utf8');
-
-// Create redirect script
-const redirectScript = `
-<script>
-  // Auto-redirect to registry if no registry parameter present
-  (function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasRegistry = urlParams.has('registry');
-    const hasChannel = urlParams.has('channel');
-
-    if (!hasRegistry && !hasChannel) {
-      // Redirect to registry address from deployment
-      const registryAddress = '${registryAddress}';
-      const newUrl = window.location.pathname + '?registry=' + registryAddress + window.location.hash;
-      window.location.href = newUrl;
-    }
-  })();
-</script>
-`;
-
-// Inject before closing </head> tag
-indexHtml = indexHtml.replace('</head>', `  ${redirectScript}\n  </head>`);
-
-// Write modified index.html
-fs.writeFileSync(indexPath, indexHtml);
-
-console.log('\n✅ Build complete with auto-redirect!');
-console.log(`   Registry: ${registryAddress}`);
+console.log('\n✅ Build complete!');
 console.log(`   Output: ${distPath}`);
 console.log(`\n🌐 Test locally:`);
 console.log(`   npx serve dist`);

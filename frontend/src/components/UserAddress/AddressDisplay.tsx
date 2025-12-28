@@ -7,13 +7,19 @@ const sizeClasses = {
   sm: 'text-sm',
 };
 
+const colorVariants = {
+  accent: 'text-accent-400 hover:text-accent-300',
+  muted: 'text-primary-600 hover:text-primary-500',
+};
+
 export function AddressDisplay({
   address,
   displayName,
   showBoth = false,
   size = 'sm',
   className = '',
-}: AddressDisplayProps) {
+  variant = 'accent',
+}: AddressDisplayProps & { variant?: 'accent' | 'muted' }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -35,7 +41,7 @@ export function AddressDisplay({
         onClick={handleCopy}
         className={`
           font-mono ${sizeClasses[size]}
-          text-accent-400 hover:text-accent-300
+          ${colorVariants[variant]}
           transition-colors cursor-pointer
           ${className}
         `}

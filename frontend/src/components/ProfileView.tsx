@@ -49,6 +49,8 @@ interface ProfileViewProps {
   isFollowingUser?: (address: string) => boolean;
   onTip?: (address: string) => void;
   canTip?: boolean;
+  // Connect wallet callback (when no wallet connected)
+  onConnectWallet?: () => void;
   // Post selection
   selectedPostFromUrl?: number | null;
   onPostChange?: (postIndex: number | null) => void;
@@ -66,8 +68,8 @@ export function ProfileView({
   onFollow,
   onUnfollow,
   followLoading = false,
-  followerCount = 0,
-  followingCount = 0,
+  followerCount: _followerCount = 0,
+  followingCount: _followingCount = 0,
   userPostsAddress,
   repliesAddress,
   votingAddress,
@@ -90,6 +92,8 @@ export function ProfileView({
   isFollowingUser,
   onTip,
   canTip = false,
+  // Connect wallet callback
+  onConnectWallet,
   // Post selection
   selectedPostFromUrl,
   onPostChange,
@@ -326,145 +330,124 @@ export function ProfileView({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b-2 border-primary-500 p-6">
-        <div className="max-w-2xl mx-auto flex items-start gap-6">
-          {/* Avatar */}
-          <div className="w-20 h-20 border-2 border-primary-500 bg-primary-950 flex items-center justify-center text-primary-500 text-2xl font-mono flex-shrink-0">
-            {(isEditing ? editName : profile?.displayName)?.charAt(0).toUpperCase() || '?'}
+        <div className="max-w-2xl mx-auto">
+          {/* Display Name - inline editable */}
+          {isEditing ? (
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              maxLength={32}
+              className="text-xl font-bold text-primary-500 font-mono bg-transparent border-b-2 border-primary-500 focus:border-accent-400 focus:outline-none w-full"
+              placeholder="Display name..."
+            />
+          ) : (
+            <h1 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono truncate">
+              {profile?.displayName || truncateAddress(userAddress)}
+            </h1>
+          )}
+
+          {/* Bio - inline editable, elegant styling */}
+          {isEditing ? (
+            <textarea
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              maxLength={256}
+              rows={2}
+              className="mt-3 w-full text-sm text-primary-400 font-mono bg-transparent border-b border-primary-700 focus:border-accent-400 focus:outline-none resize-none"
+              placeholder="Tell us about yourself..."
+            />
+          ) : (profile?.bio || isOwnProfile) && (
+            <p className="mt-3 text-sm text-primary-300 font-mono whitespace-pre-wrap">
+              {profile?.bio || (isOwnProfile ? 'No bio yet' : '')}
+            </p>
+          )}
+
+          {/* Address and Balance */}
+          <div className="mt-3 flex items-center gap-3 text-xs font-mono text-primary-600">
+            <AddressDisplay address={userAddress} size="xs" variant="muted" />
+            <span className="text-primary-700">·</span>
+            <span>{formatBalance(profileBalance)} PAS</span>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            {/* Display Name - inline editable */}
-            {isEditing ? (
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                maxLength={32}
-                className="text-xl font-bold text-primary-500 font-mono bg-transparent border-b-2 border-primary-500 focus:border-accent-400 focus:outline-none w-full"
-                placeholder="Display name..."
-              />
-            ) : (
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-xl font-bold text-primary-500 text-shadow-neon font-mono truncate">
-                  {profile?.displayName || truncateAddress(userAddress)}
-                </h1>
-                <span className="text-sm text-primary-400 font-mono whitespace-nowrap">
-                  {formatBalance(profileBalance)} PAS
-                </span>
-              </div>
+          {/* Action buttons */}
+          <div className="mt-4 flex gap-2">
+            {isOwnProfile && canEdit && !isEditing && (
+              <button
+                onClick={handleStartEdit}
+                className="px-4 py-1.5 bg-primary-900 border-2 border-primary-500 text-primary-400 text-sm font-mono hover:bg-primary-800 transition-colors"
+              >
+                EDIT PROFILE
+              </button>
             )}
-            <div className="mt-1">
-              <AddressDisplay address={userAddress} size="sm" />
-            </div>
-
-            {/* Bio - inline editable, elegant styling */}
-            {isEditing ? (
-              <textarea
-                value={editBio}
-                onChange={(e) => setEditBio(e.target.value)}
-                maxLength={256}
-                rows={2}
-                className="mt-3 w-full text-sm text-primary-400 font-mono bg-transparent border-b border-primary-700 focus:border-accent-400 focus:outline-none resize-none"
-                placeholder="Tell us about yourself..."
-              />
-            ) : (profile?.bio || isOwnProfile) && (
-              <p className="mt-3 text-sm text-primary-400 font-mono whitespace-pre-wrap">
-                {profile?.bio || (isOwnProfile ? 'No bio yet' : '')}
-              </p>
+            {isOwnProfile && isEditing && (
+              <>
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={isSaving}
+                  className="px-4 py-1.5 bg-accent-900 border-2 border-accent-500 text-accent-400 text-sm font-mono hover:bg-accent-800 transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? 'SAVING...' : 'SAVE'}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  className="px-4 py-1.5 bg-gray-900 border-2 border-gray-600 text-gray-400 text-sm font-mono hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  CANCEL
+                </button>
+              </>
             )}
-
-            {/* Stats */}
-            <div className="mt-3 flex gap-4 text-xs font-mono">
-              <span>
-                <span className="text-primary-600">FOLLOWING:</span>{' '}
-                <span className="text-primary-400">{followingCount}</span>
-              </span>
-              <span>
-                <span className="text-primary-600">FOLLOWERS:</span>{' '}
-                <span className="text-primary-400">{followerCount}</span>
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="mt-4 flex gap-2">
-              {isOwnProfile && canEdit && !isEditing && (
+            {!isOwnProfile && dmRegistryAvailable && onStartDM && (
+              <div className="relative group">
                 <button
-                  onClick={handleStartEdit}
-                  className="px-4 py-1.5 bg-primary-900 border-2 border-primary-500 text-primary-400 text-sm font-mono hover:bg-primary-800 transition-colors"
-                >
-                  EDIT PROFILE
-                </button>
-              )}
-              {isOwnProfile && isEditing && (
-                <>
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="px-4 py-1.5 bg-accent-900 border-2 border-accent-500 text-accent-400 text-sm font-mono hover:bg-accent-800 transition-colors disabled:opacity-50"
-                  >
-                    {isSaving ? 'SAVING...' : 'SAVE'}
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    disabled={isSaving}
-                    className="px-4 py-1.5 bg-gray-900 border-2 border-gray-600 text-gray-400 text-sm font-mono hover:bg-gray-800 transition-colors disabled:opacity-50"
-                  >
-                    CANCEL
-                  </button>
-                </>
-              )}
-              {!isOwnProfile && dmRegistryAvailable && onStartDM && (
-                <div className="relative group">
-                  <button
-                    onClick={() => onStartDM(userAddress)}
-                    disabled={dmDisabled}
-                    className={`px-4 py-1.5 border-2 text-sm font-mono transition-colors ${
-                      !dmDisabled
-                        ? 'bg-accent-900 border-accent-500 text-accent-400 hover:bg-accent-800'
-                        : 'bg-gray-900 border-gray-700 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    SEND DM
-                  </button>
-                  {dmDisabled && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black border border-primary-700 text-primary-500 font-mono text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                      {dmDisabledReason}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-700" />
-                    </div>
-                  )}
-                </div>
-              )}
-              {!isOwnProfile && (sessionWallet || browserProvider) && (
-                <button
-                  onClick={() => setShowTipModal(true)}
-                  className="px-4 py-1.5 bg-yellow-900 border-2 border-yellow-500 text-yellow-400 text-sm font-mono hover:bg-yellow-800 transition-colors"
-                >
-                  SEND TIP
-                </button>
-              )}
-              {!isOwnProfile && onFollow && onUnfollow && (
-                <button
-                  onClick={isFollowing ? handleUnfollow : handleFollow}
-                  disabled={followActionLoading}
+                  onClick={() => onStartDM(userAddress)}
+                  disabled={dmDisabled}
                   className={`px-4 py-1.5 border-2 text-sm font-mono transition-colors ${
-                    followActionLoading
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
-                  } ${
-                    isFollowing
-                      ? 'bg-gray-900 border-gray-600 text-gray-400 hover:bg-gray-800'
-                      : 'bg-primary-900 border-primary-500 text-primary-400 hover:bg-primary-800'
+                    !dmDisabled
+                      ? 'bg-accent-900 border-accent-500 text-accent-400 hover:bg-accent-800'
+                      : 'bg-gray-900 border-gray-700 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {followActionLoading
-                    ? '...'
-                    : isFollowing
-                    ? 'UNFOLLOW'
-                    : 'FOLLOW'}
+                  SEND DM
                 </button>
-              )}
-            </div>
+                {dmDisabled && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black border border-primary-700 text-primary-500 font-mono text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    {dmDisabledReason}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-primary-700" />
+                  </div>
+                )}
+              </div>
+            )}
+            {!isOwnProfile && onTip && (
+              <button
+                onClick={() => setShowTipModal(true)}
+                className="px-4 py-1.5 bg-yellow-900 border-2 border-yellow-500 text-yellow-400 text-sm font-mono hover:bg-yellow-800 transition-colors"
+              >
+                SEND TIP
+              </button>
+            )}
+            {!isOwnProfile && onFollow && onUnfollow && (
+              <button
+                onClick={isFollowing ? handleUnfollow : handleFollow}
+                disabled={followActionLoading}
+                className={`px-4 py-1.5 border-2 text-sm font-mono transition-colors ${
+                  followActionLoading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                } ${
+                  isFollowing
+                    ? 'bg-gray-900 border-gray-600 text-gray-400 hover:bg-gray-800'
+                    : 'bg-primary-900 border-primary-500 text-primary-400 hover:bg-primary-800'
+                }`}
+              >
+                {followActionLoading
+                  ? '...'
+                  : isFollowing
+                  ? 'UNFOLLOW'
+                  : 'FOLLOW'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -623,6 +606,7 @@ export function ProfileView({
           sessionWalletBalance={sessionWalletBalance}
           browserProvider={browserProvider}
           browserWalletAddress={browserWalletAddress}
+          onConnectWallet={onConnectWallet}
         />
       )}
     </div>

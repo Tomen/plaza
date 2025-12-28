@@ -86,8 +86,6 @@ export function ChatFeed({
         const displayName = isCurrentUser
           ? (currentUserDisplayName || msg.displayName)
           : msg.displayName;
-        const isDelegate = msg.sender.toLowerCase() !== msg.profileOwner.toLowerCase();
-
         return (
           <div key={index} className="w-full max-w-4xl font-mono text-sm text-primary-400">
             <span className="text-primary-600 text-xs">
@@ -100,7 +98,6 @@ export function ChatFeed({
                 displayName={displayName}
                 onSelectUser={onSelectUser}
                 isCurrentUser={isCurrentUser}
-                isDelegate={isDelegate}
                 getProfile={getProfile}
                 provider={provider}
                 onStartDM={onStartDM}
